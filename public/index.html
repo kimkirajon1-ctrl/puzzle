@@ -21,7 +21,6 @@
             overflow-x: hidden;
         }
 
-        /* Ana Konteyner */
         .container {
             max-width: 1200px;
             margin: 0 auto;
@@ -31,7 +30,6 @@
             flex-direction: column;
         }
 
-        /* Header */
         .header {
             text-align: center;
             padding: 20px;
@@ -46,7 +44,6 @@
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
 
-        /* Bağlantı durumu */
         .connection-status {
             display: flex;
             align-items: center;
@@ -72,7 +69,6 @@
             50% { opacity: 0.5; }
         }
 
-        /* Ekranlar */
         .screen {
             background: rgba(255, 255, 255, 0.1);
             border-radius: 20px;
@@ -90,7 +86,6 @@
             display: none !important;
         }
 
-        /* Butonlar */
         button {
             padding: 15px 30px;
             background: linear-gradient(135deg, #ff6b6b, #ff4757);
@@ -115,17 +110,10 @@
             transform: translateY(0);
         }
 
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
         .btn-blue { background: linear-gradient(135deg, #4facfe, #00f2fe); }
         .btn-green { background: linear-gradient(135deg, #43e97b, #38f9d7); color: #333; }
         .btn-purple { background: linear-gradient(135deg, #a8edea, #fed6e3); color: #333; }
 
-        /* Input */
         input {
             padding: 15px;
             border-radius: 25px;
@@ -144,7 +132,6 @@
             color: rgba(255,255,255,0.7);
         }
 
-        /* Oyun Alanı */
         #game-area {
             display: flex;
             gap: 20px;
@@ -184,7 +171,7 @@
         }
 
         .tile {
-            background-size: cover;
+            background-size: 300% 300%;
             background-repeat: no-repeat;
             border-radius: 4px;
             cursor: pointer;
@@ -206,15 +193,10 @@
             cursor: default;
         }
 
-        .tile.empty:hover {
-            transform: none;
-        }
-
         .opponent-tile {
             cursor: default !important;
         }
 
-        /* Kontroller */
         #controls {
             position: fixed;
             bottom: 20px;
@@ -239,7 +221,6 @@
             backdrop-filter: blur(10px);
         }
 
-        /* Hint Overlay */
         .hint-overlay {
             position: absolute;
             top: 0;
@@ -256,7 +237,6 @@
             z-index: 50;
         }
 
-        /* Chat */
         #chat-area {
             background: rgba(255, 255, 255, 0.1);
             border-radius: 20px;
@@ -273,12 +253,12 @@
             border-radius: 10px;
         }
 
-        /* Emoji animasyonu */
         .floating-emoji {
             position: fixed;
             pointer-events: none;
             z-index: 1000;
             animation: floatUp 2s ease-out forwards;
+            font-size: 40px;
         }
 
         @keyframes floatUp {
@@ -286,7 +266,6 @@
             100% { transform: translateY(-200px) scale(2); opacity: 0; }
         }
 
-        /* Sürpriz Mesaj */
         #surprise-message {
             position: fixed;
             inset: 0;
@@ -309,7 +288,33 @@
             50% { transform: translateY(-20px); }
         }
 
-        /* Responsive */
+        .upload-progress {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .upload-progress.show {
+            display: block;
+        }
+
+        .error-message {
+            color: #ff6b6b;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        #preview-image {
+            max-width: 200px;
+            max-height: 200px;
+            margin-top: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+
         @media (max-width: 768px) {
             .container { padding: 10px; }
             #game-area { flex-direction: column; }
@@ -317,7 +322,6 @@
             .header h1 { font-size: 1.8em; }
         }
 
-        /* Loading */
         .loading {
             display: inline-block;
             width: 20px;
@@ -335,7 +339,6 @@
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
         <div class="header">
             <h1>💑 Aşk Puzzle</h1>
             <div class="connection-status">
@@ -345,7 +348,6 @@
             <div id="room-info" style="margin-top: 10px; font-size: 1.2em;"></div>
         </div>
 
-        <!-- Ana Menü -->
         <div id="menu-screen" class="screen">
             <h2 style="margin-bottom: 30px;">Uzaktaki Sevgilinle Puzzle Oyna!</h2>
             <input type="text" id="player-name" placeholder="Adın ne?" maxlength="20">
@@ -355,7 +357,6 @@
             <button class="btn-green" onclick="joinRoom()">🚪 Odaya Katıl</button>
         </div>
 
-        <!-- Bekleme Odası -->
         <div id="waiting-screen" class="screen hidden">
             <h2>⏳ Partnerin Bekleniyor...</h2>
             <div class="loading" style="margin: 20px;"></div>
@@ -364,7 +365,6 @@
             <button onclick="copyRoomCode()" class="btn-purple">📋 Kodu Kopyala</button>
         </div>
 
-        <!-- Zorluk Seçimi -->
         <div id="difficulty-screen" class="screen hidden">
             <h2 style="margin-bottom: 30px;">🧩 Zorluk Seviyesi</h2>
             <p style="margin-bottom: 20px; opacity: 0.8;">Zorluğu Oyuncu 2 seçer</p>
@@ -379,24 +379,28 @@
             </div>
         </div>
 
-        <!-- Fotoğraf Yükleme -->
         <div id="upload-screen" class="screen hidden">
             <h2 style="margin-bottom: 30px;">📸 Birlikte Bir Fotoğraf Seç</h2>
-            <button class="btn-green" onclick="document.getElementById('file-input').click()">
+            <button class="btn-green" onclick="triggerFileInput()">
                 📱 Galeriden Fotoğraf Seç
             </button>
             <input type="file" id="file-input" accept="image/*" style="display:none">
+            <img id="preview-image" alt="Seçilen fotoğraf">
+            <div class="upload-progress" id="upload-progress">
+                <div class="loading"></div>
+                <p>Fotoğraf işleniyor...</p>
+            </div>
+            <div class="error-message" id="upload-error">
+                Fotoğraf yüklenemedi! Lütfen tekrar deneyin.
+            </div>
             <p style="margin-top: 20px; opacity: 0.8;">Bu fotoğraf puzzle için kullanılacak</p>
         </div>
 
-        <!-- Oyun Alanı -->
         <div id="game-screen" class="hidden" style="flex: 1; display: flex; flex-direction: column;">
             <div id="game-area">
-                <!-- Oyuncu 1 -->
                 <div class="player-board">
                     <div class="player-header">
                         👤 <span id="p1-name">Oyuncu 1</span>
-                        <span id="p1-status"></span>
                     </div>
                     <div style="position: relative; flex: 1;">
                         <div id="p1-grid" class="puzzle-grid"></div>
@@ -404,11 +408,9 @@
                     </div>
                 </div>
                 
-                <!-- Oyuncu 2 -->
                 <div class="player-board">
                     <div class="player-header">
                         👤 <span id="p2-name">Oyuncu 2</span>
-                        <span id="p2-status"></span>
                     </div>
                     <div style="position: relative; flex: 1;">
                         <div id="p2-grid" class="puzzle-grid"></div>
@@ -417,7 +419,6 @@
                 </div>
             </div>
 
-            <!-- Chat -->
             <div id="chat-area">
                 <div id="chat-messages"></div>
                 <div style="display: flex; gap: 10px; margin-top: 10px;">
@@ -428,15 +429,13 @@
         </div>
     </div>
 
-    <!-- Sürpriz Mesaj -->
     <div id="surprise-message" onclick="hideSurprise()">
         <h1>💕 Seni Çok Seviyorum! 💕</h1>
         <p style="font-size: 1.5em; margin-top: 20px;">Bu oyunu senin için yaptım</p>
         <p style="margin-top: 30px; opacity: 0.8;">(Kapatmak için tıklayın)</p>
     </div>
 
-    <!-- Kontroller -->
-    <div id="controls">
+    <div id="controls" style="display: none;">
         <button id="hint-btn" title="İpucu göster (basılı tut)">👁️</button>
         <button onclick="sendEmoji('❤️')" title="Kalp gönder">❤️</button>
         <button onclick="sendEmoji('💋')" title="Öpücük gönder">💋</button>
@@ -445,9 +444,14 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
+        // DEBUG modu - Konsola log yazdırır
+        const DEBUG = true;
+        function log(...args) {
+            if (DEBUG) console.log('[DEBUG]', ...args);
+        }
+
         const socket = io();
         
-        // Oyun durumu
         let myRole = '';
         let roomId = '';
         let size = 3;
@@ -456,20 +460,19 @@
         let currentImage = '';
         let gameStarted = false;
         
-        // DOM elementleri
         const menuScreen = document.getElementById('menu-screen');
         const waitingScreen = document.getElementById('waiting-screen');
         const difficultyScreen = document.getElementById('difficulty-screen');
         const uploadScreen = document.getElementById('upload-screen');
         const gameScreen = document.getElementById('game-screen');
         
-        // Oda oluştur
+        // ============ ODA İŞLEMLERİ ============
         function createRoom() {
             const playerName = document.getElementById('player-name').value || 'Oyuncu 1';
+            log('Oda oluşturuluyor:', playerName);
             socket.emit('createRoom', { playerName });
         }
         
-        // Odaya katıl
         function joinRoom() {
             const roomIdInput = document.getElementById('room-id-input').value.toUpperCase();
             const playerName = document.getElementById('player-name').value || 'Oyuncu 2';
@@ -479,71 +482,158 @@
                 return;
             }
             
+            log('Odaya katılınıyor:', roomIdInput, playerName);
             socket.emit('joinRoom', { roomId: roomIdInput, playerName });
         }
         
-        // Oda kodu kopyala
         function copyRoomCode() {
             navigator.clipboard.writeText(roomId).then(() => {
-                alert('Oda kodu kopyalandı! Partnerinle paylaşabilirsin.');
+                alert('Oda kodu kopyalandı!');
+            }).catch(() => {
+                const textArea = document.createElement('textarea');
+                textArea.value = roomId;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('Oda kodu kopyalandı!');
             });
         }
         
-        // Zorluk seç
         function selectDifficulty(level) {
+            log('Zorluk seçildi:', level);
             size = level;
             socket.emit('selectDifficulty', { level });
         }
         
-        // Fotoğraf yükle
-        document.getElementById('file-input').onchange = function(e) {
+        // ============ FOTOĞRAF YÜKLEME ============
+        function triggerFileInput() {
+            log('Dosya input tetiklendi');
+            document.getElementById('file-input').click();
+        }
+        
+        // File input change event
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            log('File input change event tetiklendi');
             const file = e.target.files[0];
-            if (!file) return;
+            
+            if (!file) {
+                log('Dosya seçilmedi');
+                return;
+            }
+            
+            log('Seçilen dosya:', file.name, file.size, file.type);
+            
+            // Yükleme göstergesini göster
+            document.getElementById('upload-progress').classList.add('show');
+            document.getElementById('upload-error').classList.remove('show');
             
             const reader = new FileReader();
+            
             reader.onload = function(ev) {
-                const img = new Image();
-                img.onload = function() {
+                log('FileReader onload tetiklendi');
+                const dataUrl = ev.target.result;
+                
+                // Önizleme göster
+                const previewImg = document.getElementById('preview-image');
+                previewImg.src = dataUrl;
+                previewImg.style.display = 'block';
+                
+                // Resmi işle
+                processImage(dataUrl);
+            };
+            
+            reader.onerror = function(err) {
+                log('FileReader hata:', err);
+                showUploadError();
+            };
+            
+            reader.readAsDataURL(file);
+        });
+        
+        function processImage(dataUrl) {
+            log('processImage başladı');
+            
+            const img = new Image();
+            
+            img.onload = function() {
+                log('Image onload - Boyutlar:', img.width, 'x', img.height);
+                
+                try {
                     const canvas = document.createElement('canvas');
                     const maxSize = 600;
                     let width = img.width;
                     let height = img.height;
                     
+                    // Boyutlandırma
                     if (width > height) {
                         if (width > maxSize) {
-                            height = height * (maxSize / width);
+                            height = Math.round(height * (maxSize / width));
                             width = maxSize;
                         }
                     } else {
                         if (height > maxSize) {
-                            width = width * (maxSize / height);
+                            width = Math.round(width * (maxSize / height));
                             height = maxSize;
                         }
                     }
                     
+                    log('Canvas boyutu:', width, 'x', height);
+                    
                     canvas.width = width;
                     canvas.height = height;
+                    
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
                     
-                    const imageData = canvas.toDataURL('image/jpeg', 0.7);
-                    startGame(imageData);
-                };
-                img.src = ev.target.result;
+                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                    log('Sıkıştırılmış resim oluşturuldu, uzunluk:', compressedDataUrl.length);
+                    
+                    // Yükleme göstergesini gizle
+                    document.getElementById('upload-progress').classList.remove('show');
+                    
+                    // Oyunu başlat
+                    startGame(compressedDataUrl);
+                    
+                } catch (error) {
+                    log('Canvas işleme hatası:', error);
+                    showUploadError();
+                }
             };
-            reader.readAsDataURL(file);
-        };
+            
+            img.onerror = function(err) {
+                log('Image yükleme hatası:', err);
+                showUploadError();
+            };
+            
+            img.src = dataUrl;
+        }
         
-        // Oyunu başlat
+        function showUploadError() {
+            document.getElementById('upload-progress').classList.remove('show');
+            document.getElementById('upload-error').classList.add('show');
+        }
+        
+        // ============ OYUN BAŞLATMA ============
         function startGame(imageData) {
+            log('startGame çağrıldı, resim uzunluğu:', imageData ? imageData.length : 'NULL');
+            
+            if (!imageData) {
+                log('HATA: imageData boş!');
+                alert('Fotoğraf yüklenemedi! Lütfen tekrar deneyin.');
+                return;
+            }
+            
             currentImage = imageData;
             
+            // Rastgele puzzle dizisi
             const tiles = Array.from({length: size * size}, (_, i) => i);
-            // Fisher-Yates shuffle
             for (let i = tiles.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
             }
+            
+            log('Tiles oluşturuldu:', tiles);
             
             socket.emit('startGame', {
                 image: imageData,
@@ -552,13 +642,24 @@
             });
         }
         
-        // Grid render
+        // ============ GRID RENDER ============
         function renderGrid(gridId, grid, isMyGrid) {
+            log('renderGrid çağrıldı:', gridId, 'Grid uzunluğu:', grid.length);
+            
             const element = document.getElementById(gridId);
-            if (!element) return;
+            if (!element) {
+                log('HATA: Grid elementi bulunamadı:', gridId);
+                return;
+            }
             
             element.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
             element.innerHTML = '';
+            
+            if (!currentImage) {
+                log('HATA: currentImage boş!');
+                element.innerHTML = '<div style="color:white;text-align:center;padding:20px;">Fotoğraf yüklenemedi!</div>';
+                return;
+            }
             
             grid.forEach((value, index) => {
                 const tile = document.createElement('div');
@@ -570,13 +671,17 @@
                     tile.classList.add('opponent-tile');
                 }
                 
-                if (!isEmpty && currentImage) {
-                    tile.style.backgroundImage = `url(${currentImage})`;
+                if (!isEmpty) {
+                    // ÖNEMLİ: Background ayarları
                     const row = Math.floor(value / size);
                     const col = value % size;
+                    
+                    tile.style.backgroundImage = `url(${currentImage})`;
+                    tile.style.backgroundSize = `${size * 100}% ${size * 100}%`;
                     tile.style.backgroundPosition = 
                         `${(col / (size - 1)) * 100}% ${(row / (size - 1)) * 100}%`;
-                    tile.style.backgroundSize = `${size * 100}%`;
+                    
+                    log(`Tile ${index} (value: ${value}): row=${row}, col=${col}, pos=${tile.style.backgroundPosition}`);
                 }
                 
                 if (isMyGrid && !isEmpty) {
@@ -585,9 +690,11 @@
                 
                 element.appendChild(tile);
             });
+            
+            log('Grid render edildi:', gridId);
         }
         
-        // Taşı hareket ettir
+        // ============ TAŞ HAREKETİ ============
         function moveTile(index) {
             if (!gameStarted) return;
             
@@ -614,7 +721,7 @@
             }
         }
         
-        // Mesaj gönder
+        // ============ MESAJ & EMOJİ ============
         function sendMessage() {
             const input = document.getElementById('chat-input');
             const message = input.value.trim();
@@ -625,22 +732,19 @@
             }
         }
         
-        // Emoji gönder
         function sendEmoji(emoji) {
             socket.emit('sendEmoji', { emoji });
             
-            const emojiElement = document.createElement('div');
-            emojiElement.className = 'floating-emoji';
-            emojiElement.textContent = emoji;
-            emojiElement.style.left = Math.random() * 80 + '%';
-            emojiElement.style.top = '80%';
+            const el = document.createElement('div');
+            el.className = 'floating-emoji';
+            el.textContent = emoji;
+            el.style.left = Math.random() * 80 + '%';
+            el.style.top = '80%';
             
-            document.body.appendChild(emojiElement);
-            
-            setTimeout(() => emojiElement.remove(), 2000);
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 2000);
         }
         
-        // Sürpriz mesaj
         function showSurprise() {
             document.getElementById('surprise-message').style.display = 'flex';
         }
@@ -649,16 +753,19 @@
             document.getElementById('surprise-message').style.display = 'none';
         }
         
-        // Socket event handlers
+        // ============ SOCKET EVENTS ============
         socket.on('connect', () => {
+            log('Socket bağlandı');
             updateConnectionStatus(true);
         });
         
         socket.on('disconnect', () => {
+            log('Socket bağlantısı koptu');
             updateConnectionStatus(false);
         });
         
         socket.on('roomCreated', (data) => {
+            log('Oda oluşturuldu:', data);
             myRole = data.role;
             roomId = data.roomId;
             
@@ -670,6 +777,7 @@
         });
         
         socket.on('roomJoined', (data) => {
+            log('Odaya katıldı:', data);
             myRole = data.role;
             roomId = data.roomId;
             
@@ -677,34 +785,41 @@
             difficultyScreen.classList.remove('hidden');
             
             document.getElementById('room-info').textContent = `Oda: ${roomId}`;
-            
-            // Oyuncu 2 zorluk seçebilir
             document.getElementById('difficulty-buttons').classList.remove('hidden');
             document.getElementById('waiting-difficulty').classList.add('hidden');
         });
         
-        socket.on('playerJoined', (data) => {
+        socket.on('playerJoined', () => {
+            log('Oyuncu katıldı');
             waitingScreen.classList.add('hidden');
             difficultyScreen.classList.remove('hidden');
             
-            // Oyuncu 1 bekler
             document.getElementById('difficulty-buttons').classList.add('hidden');
             document.getElementById('waiting-difficulty').classList.remove('hidden');
         });
         
         socket.on('difficultySelected', (data) => {
+            log('Zorluk seçildi:', data);
             size = data.level;
             difficultyScreen.classList.add('hidden');
             uploadScreen.classList.remove('hidden');
         });
         
         socket.on('gameStarted', (data) => {
+            log('Oyun başladı verisi alındı:', data);
+            log('Image var mı?', !!data.image);
+            log('Image uzunluğu:', data.image ? data.image.length : 'YOK');
+            
             size = data.size;
             currentImage = data.image;
             myGrid = [...data.playerGrids[myRole]];
             opponentGrid = [...data.playerGrids[myRole === 'p1' ? 'p2' : 'p1']];
             
+            log('myGrid:', myGrid);
+            log('opponentGrid:', opponentGrid);
+            
             uploadScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
             gameScreen.style.display = 'flex';
             
             document.getElementById('controls').style.display = 'flex';
@@ -712,13 +827,17 @@
             const myGridId = `${myRole}-grid`;
             const opponentGridId = `${myRole === 'p1' ? 'p2' : 'p1'}-grid`;
             
+            // Hint overlay'i ayarla
+            const hintOverlay = document.getElementById(`${myRole}-hint`);
+            if (hintOverlay && currentImage) {
+                hintOverlay.style.backgroundImage = `url(${currentImage})`;
+            }
+            
             renderGrid(myGridId, myGrid, true);
             renderGrid(opponentGridId, opponentGrid, false);
             
-            // Hint overlay'leri ayarla
-            document.getElementById(`${myRole}-hint`).style.backgroundImage = `url(${currentImage})`;
-            
             gameStarted = true;
+            log('Oyun başladı!');
         });
         
         socket.on('opponentMove', (data) => {
@@ -728,23 +847,22 @@
         });
         
         socket.on('receiveEmoji', (data) => {
-            const emojiElement = document.createElement('div');
-            emojiElement.className = 'floating-emoji';
-            emojiElement.textContent = data.emoji;
-            emojiElement.style.left = Math.random() * 80 + '%';
-            emojiElement.style.top = '80%';
+            const el = document.createElement('div');
+            el.className = 'floating-emoji';
+            el.textContent = data.emoji;
+            el.style.left = Math.random() * 80 + '%';
+            el.style.top = '80%';
             
-            document.body.appendChild(emojiElement);
-            
-            setTimeout(() => emojiElement.remove(), 2000);
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 2000);
         });
         
         socket.on('newMessage', (data) => {
             const messagesDiv = document.getElementById('chat-messages');
-            const messageElement = document.createElement('div');
-            messageElement.className = 'chat-message';
-            messageElement.textContent = `${data.sender === 'p1' ? 'Oyuncu 1' : 'Oyuncu 2'}: ${data.message}`;
-            messagesDiv.appendChild(messageElement);
+            const msg = document.createElement('div');
+            msg.className = 'chat-message';
+            msg.textContent = `${data.sender === 'p1' ? 'Oyuncu 1' : 'Oyuncu 2'}: ${data.message}`;
+            messagesDiv.appendChild(msg);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         });
         
@@ -752,8 +870,8 @@
             alert(data.message);
         });
         
-        socket.on('playerDisconnected', (data) => {
-            alert(`${data.role === 'p1' ? 'Oyuncu 1' : 'Oyuncu 2'} bağlantısı koptu!`);
+        socket.on('playerDisconnected', () => {
+            alert('Partnerin bağlantısı koptu!');
             updateConnectionStatus(false);
         });
         
@@ -774,46 +892,40 @@
             }
         }
         
-        // Hint butonu
+        // ============ HINT BUTONU ============
         const hintBtn = document.getElementById('hint-btn');
-        let hintTimeout;
         
-        hintBtn.addEventListener('mousedown', () => {
+        function showHint() {
             const hintOverlay = document.getElementById(`${myRole}-hint`);
-            if (hintOverlay) hintOverlay.style.display = 'block';
-        });
+            if (hintOverlay) {
+                log('Hint gösteriliyor');
+                hintOverlay.style.display = 'block';
+            }
+        }
         
-        hintBtn.addEventListener('mouseup', () => {
+        function hideHint() {
             const hintOverlay = document.getElementById(`${myRole}-hint`);
-            if (hintOverlay) hintOverlay.style.display = 'none';
-        });
+            if (hintOverlay) {
+                hintOverlay.style.display = 'none';
+            }
+        }
         
-        hintBtn.addEventListener('mouseleave', () => {
-            const hintOverlay = document.getElementById(`${myRole}-hint`);
-            if (hintOverlay) hintOverlay.style.display = 'none';
-        });
+        hintBtn.addEventListener('mousedown', showHint);
+        hintBtn.addEventListener('mouseup', hideHint);
+        hintBtn.addEventListener('mouseleave', hideHint);
+        hintBtn.addEventListener('touchstart', (e) => { e.preventDefault(); showHint(); });
+        hintBtn.addEventListener('touchend', hideHint);
         
-        // Mobil touch
-        hintBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            const hintOverlay = document.getElementById(`${myRole}-hint`);
-            if (hintOverlay) hintOverlay.style.display = 'block';
-        });
-        
-        hintBtn.addEventListener('touchend', () => {
-            const hintOverlay = document.getElementById(`${myRole}-hint`);
-            if (hintOverlay) hintOverlay.style.display = 'none';
-        });
-        
-        // Enter tuşu ile mesaj gönderme
+        // ============ DİĞER ============
         document.getElementById('chat-input').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendMessage();
         });
         
-        // Oda kodu input'unu büyük harfe çevir
         document.getElementById('room-id-input').addEventListener('input', function(e) {
             this.value = this.value.toUpperCase();
         });
+        
+        log('Script yüklendi, hazır!');
     </script>
 </body>
 </html>
