@@ -783,4 +783,37 @@
             if (hintOverlay) hintOverlay.style.display = 'block';
         });
         
-        hintBtn.addEventListener('mouseup', () =>
+        hintBtn.addEventListener('mouseup', () => {
+            const hintOverlay = document.getElementById(`${myRole}-hint`);
+            if (hintOverlay) hintOverlay.style.display = 'none';
+        });
+        
+        hintBtn.addEventListener('mouseleave', () => {
+            const hintOverlay = document.getElementById(`${myRole}-hint`);
+            if (hintOverlay) hintOverlay.style.display = 'none';
+        });
+        
+        // Mobil touch
+        hintBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const hintOverlay = document.getElementById(`${myRole}-hint`);
+            if (hintOverlay) hintOverlay.style.display = 'block';
+        });
+        
+        hintBtn.addEventListener('touchend', () => {
+            const hintOverlay = document.getElementById(`${myRole}-hint`);
+            if (hintOverlay) hintOverlay.style.display = 'none';
+        });
+        
+        // Enter tuşu ile mesaj gönderme
+        document.getElementById('chat-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+        
+        // Oda kodu input'unu büyük harfe çevir
+        document.getElementById('room-id-input').addEventListener('input', function(e) {
+            this.value = this.value.toUpperCase();
+        });
+    </script>
+</body>
+</html>
