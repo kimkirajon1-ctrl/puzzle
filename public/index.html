@@ -133,63 +133,68 @@
         }
 
         /* KIRPMA EKRANI */
-        #crop-screen {
-            padding: 20px;
+        .crop-wrapper {
+            position: relative;
+            display: inline-block;
+            max-width: 100%;
+            margin: 0 auto;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
         }
 
-        .crop-container {
+        #crop-container {
             position: relative;
-            width: 100%;
-            max-width: 500px;
-            margin: 0 auto;
-            overflow: hidden;
-            cursor: move;
-            border-radius: 10px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            display: inline-block;
+            cursor: grab;
+            max-width: 100%;
+            max-height: 60vh;
+        }
+
+        #crop-container:active {
+            cursor: grabbing;
         }
 
         #crop-image {
             display: block;
-            width: 100%;
+            max-width: 100%;
+            max-height: 60vh;
             pointer-events: none;
         }
 
-        .crop-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            pointer-events: none;
-        }
-
-        .crop-box {
+        /* Kare overlay - kırmızı çerçeve */
+        .crop-frame {
             position: absolute;
             border: 3px solid #ff4757;
-            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
             pointer-events: none;
+            top: 0;
+            left: 0;
             transition: none;
         }
 
-        .crop-handle {
+        /* Köşe tutamaçları - sadece görsel */
+        .corner {
             position: absolute;
-            width: 20px;
-            height: 20px;
+            width: 15px;
+            height: 15px;
             background: #ff4757;
             border-radius: 50%;
-            pointer-events: auto;
-            z-index: 10;
+            pointer-events: none;
         }
 
-        .crop-handle:hover {
-            background: #ff6b81;
-            transform: scale(1.2);
-        }
+        .corner-tl { top: -7px; left: -7px; }
+        .corner-tr { top: -7px; right: -7px; }
+        .corner-bl { bottom: -7px; left: -7px; }
+        .corner-br { bottom: -7px; right: -7px; }
 
         .crop-instructions {
-            margin: 20px 0;
+            margin: 15px 0;
             opacity: 0.9;
             font-size: 1.1em;
+            background: rgba(0,0,0,0.2);
+            padding: 10px 20px;
+            border-radius: 20px;
         }
 
         /* OYUN ALANI */
@@ -349,31 +354,13 @@
             50% { transform: translateY(-20px); }
         }
 
-        .upload-progress {
-            margin-top: 20px;
-            display: none;
-        }
-
-        .upload-progress.show {
-            display: block;
-        }
-
-        .error-message {
-            color: #ff6b6b;
-            margin-top: 10px;
-            display: none;
-        }
-
-        .error-message.show {
-            display: block;
-        }
-
         @media (max-width: 768px) {
             .container { padding: 10px; }
             #game-area { flex-direction: column; }
             .puzzle-grid { max-height: 300px; }
             .header h1 { font-size: 1.8em; }
-            .crop-container { max-width: 100%; }
+            #crop-container { max-height: 50vh; }
+            #crop-image { max-height: 50vh; }
         }
 
         .loading {
@@ -443,31 +430,29 @@
                 📱 Galeriden Fotoğraf Seç
             </button>
             <input type="file" id="file-input" accept="image/*" style="display:none">
-            <div class="upload-progress" id="upload-progress">
-                <div class="loading"></div>
-                <p>Fotoğraf işleniyor...</p>
-            </div>
-            <div class="error-message" id="upload-error">
-                Fotoğraf yüklenemedi! Lütfen tekrar deneyin.
-            </div>
-            <p style="margin-top: 20px; opacity: 0.8;">Bu fotoğraf puzzle için kullanılacak</p>
+            <p style="margin-top: 20px; opacity: 0.8;">Seçtiğin fotoğrafı kare olarak kırpabilirsin</p>
         </div>
 
-        <!-- KIRPMA EKRANI (YENİ) -->
+        <!-- KIRPMA EKRANI -->
         <div id="crop-screen" class="screen hidden">
-            <h2 style="margin-bottom: 10px;">✂️ Fotoğrafı Kırp</h2>
-            <p class="crop-instructions">👆 Kareyi <strong>sürükleyerek</strong> istediğin bölgeyi seç</p>
-            <div class="crop-container" id="crop-container">
-                <img id="crop-image" alt="Kırpılacak fotoğraf">
-                <div class="crop-overlay">
-                    <div class="crop-box" id="crop-box">
-                        <div class="crop-handle" id="crop-handle" style="bottom: -10px; right: -10px;"></div>
+            <h2 style="margin-bottom: 5px;">✂️ Kareyi Sürükle</h2>
+            <p class="crop-instructions">
+                🖱️ <strong>Kırmızı kareyi sürükle</strong> - İstediğin bölgeyi seç
+            </p>
+            <div class="crop-wrapper">
+                <div id="crop-container">
+                    <img id="crop-image" alt="Kırpılacak fotoğraf">
+                    <div class="crop-frame" id="crop-frame">
+                        <div class="corner corner-tl"></div>
+                        <div class="corner corner-tr"></div>
+                        <div class="corner corner-bl"></div>
+                        <div class="corner corner-br"></div>
                     </div>
                 </div>
             </div>
             <div style="margin-top: 20px; display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;">
-                <button onclick="resetCrop()" class="btn-purple">🔄 Sıfırla</button>
-                <button onclick="confirmCrop()" class="btn-green">✅ Bu Alanı Kullan</button>
+                <button onclick="resetCrop()" class="btn-purple">🔄 Ortala</button>
+                <button onclick="confirmCrop()" class="btn-green">✅ Bu Kareyi Kullan</button>
             </div>
         </div>
 
@@ -537,14 +522,18 @@
         
         // Kırpma değişkenleri
         let originalImage = null;
-        let cropX = 0;
-        let cropY = 0;
-        let cropSize = 200; // Kare boyutu (piksel)
+        let imageDisplayWidth = 0;   // Fotoğrafın ekrandaki genişliği
+        let imageDisplayHeight = 0;  // Fotoğrafın ekrandaki yüksekliği
+        let cropSize = 0;            // Kare boyutu (ekran pikseli)
+        let cropOffsetX = 0;         // Kare X pozisyonu (kapsayıcıya göre)
+        let cropOffsetY = 0;         // Kare Y pozisyonu (kapsayıcıya göre)
+        
+        // Sürükleme durumu
         let isDragging = false;
-        let dragStartX = 0;
-        let dragStartY = 0;
-        let initialCropX = 0;
-        let initialCropY = 0;
+        let dragStartMouseX = 0;
+        let dragStartMouseY = 0;
+        let dragStartCropX = 0;
+        let dragStartCropY = 0;
         
         const menuScreen = document.getElementById('menu-screen');
         const waitingScreen = document.getElementById('waiting-screen');
@@ -556,7 +545,6 @@
         // ============ ODA İŞLEMLERİ ============
         function createRoom() {
             const playerName = document.getElementById('player-name').value || 'Oyuncu 1';
-            log('Oda oluşturuluyor:', playerName);
             socket.emit('createRoom', { playerName });
         }
         
@@ -569,7 +557,6 @@
                 return;
             }
             
-            log('Odaya katılınıyor:', roomIdInput, playerName);
             socket.emit('joinRoom', { roomId: roomIdInput, playerName });
         }
         
@@ -588,7 +575,6 @@
         }
         
         function selectDifficulty(level) {
-            log('Zorluk seçildi:', level);
             size = level;
             socket.emit('selectDifficulty', { level });
         }
@@ -598,13 +584,13 @@
             const file = e.target.files[0];
             if (!file) return;
             
-            log('Fotoğraf seçildi:', file.name);
+            log('📸 Fotoğraf seçildi:', file.name, 'Boyut:', file.size);
             
             const reader = new FileReader();
             reader.onload = function(ev) {
                 const img = new Image();
                 img.onload = function() {
-                    log('Orijinal fotoğraf boyutu:', img.width, 'x', img.height);
+                    log('✅ Orijinal fotoğraf:', img.width, 'x', img.height);
                     originalImage = img;
                     
                     // Upload ekranını gizle, kırpma ekranını göster
@@ -612,10 +598,10 @@
                     cropScreen.classList.remove('hidden');
                     
                     // Kırpma ekranını başlat
-                    initCropScreen();
+                    setupCropScreen();
                 };
                 img.onerror = function() {
-                    alert('Fotoğraf yüklenemedi!');
+                    alert('❌ Fotoğraf yüklenemedi!');
                 };
                 img.src = ev.target.result;
             };
@@ -623,200 +609,173 @@
         });
         
         // ============ KIRPMA EKRANI ============
-        function initCropScreen() {
+        function setupCropScreen() {
             const cropImage = document.getElementById('crop-image');
             const cropContainer = document.getElementById('crop-container');
-            const cropBox = document.getElementById('crop-box');
             
+            // Fotoğrafı göster
             cropImage.src = originalImage.src;
             
-            // Container genişliğine göre kare boyutunu ayarla
-            const containerWidth = cropContainer.clientWidth;
-            const imageRatio = originalImage.width / originalImage.height;
-            
-            let displayWidth, displayHeight;
-            
-            if (imageRatio > 1) {
-                // Yatay fotoğraf
-                displayWidth = containerWidth;
-                displayHeight = containerWidth / imageRatio;
-            } else {
-                // Dikey fotoğraf
-                displayHeight = containerWidth;
-                displayWidth = containerWidth * imageRatio;
-            }
-            
-            // Kare boyutu: en kısa kenarın %80'i
-            cropSize = Math.min(displayWidth, displayHeight) * 0.8;
-            
-            // Kareyi ortala
-            cropX = (displayWidth - cropSize) / 2;
-            cropY = (displayHeight - cropSize) / 2;
-            
-            updateCropBox();
-            
-            // Sürükleme olayları
-            setupDragEvents();
-            
-            log('Kırpma ekranı hazır. Kare boyutu:', cropSize, 'Pozisyon:', cropX, cropY);
+            // Fotoğraf yüklendikten sonra boyutları hesapla
+            cropImage.onload = function() {
+                calculateDimensions();
+                resetCrop();
+                setupDragListeners();
+                log('🎯 Kırpma ekranı hazır');
+                log('   Görüntülenen boyut:', imageDisplayWidth, 'x', imageDisplayHeight);
+                log('   Kare boyutu:', cropSize, 'px');
+                log('   Orijinal kısa kenar:', Math.min(originalImage.width, originalImage.height));
+            };
         }
         
-        function updateCropBox() {
-            const cropBox = document.getElementById('crop-box');
-            cropBox.style.left = cropX + 'px';
-            cropBox.style.top = cropY + 'px';
-            cropBox.style.width = cropSize + 'px';
-            cropBox.style.height = cropSize + 'px';
-        }
-        
-        function setupDragEvents() {
-            const cropContainer = document.getElementById('crop-container');
-            const cropBox = document.getElementById('crop-box');
-            const cropHandle = document.getElementById('crop-handle');
-            
-            // Mouse olayları
-            cropBox.addEventListener('mousedown', startDrag);
-            cropHandle.addEventListener('mousedown', startDrag);
-            document.addEventListener('mousemove', drag);
-            document.addEventListener('mouseup', stopDrag);
-            
-            // Touch olayları (mobil)
-            cropBox.addEventListener('touchstart', startDragTouch, { passive: false });
-            cropHandle.addEventListener('touchstart', startDragTouch, { passive: false });
-            document.addEventListener('touchmove', dragTouch, { passive: false });
-            document.addEventListener('touchend', stopDrag);
-        }
-        
-        function startDrag(e) {
-            e.preventDefault();
-            isDragging = true;
-            dragStartX = e.clientX;
-            dragStartY = e.clientY;
-            initialCropX = cropX;
-            initialCropY = cropY;
-        }
-        
-        function startDragTouch(e) {
-            e.preventDefault();
-            isDragging = true;
-            dragStartX = e.touches[0].clientX;
-            dragStartY = e.touches[0].clientY;
-            initialCropX = cropX;
-            initialCropY = cropY;
-        }
-        
-        function drag(e) {
-            if (!isDragging) return;
-            
-            const deltaX = e.clientX - dragStartX;
-            const deltaY = e.clientY - dragStartY;
-            
-            updateCropPosition(initialCropX + deltaX, initialCropY + deltaY);
-        }
-        
-        function dragTouch(e) {
-            if (!isDragging) return;
-            e.preventDefault();
-            
-            const deltaX = e.touches[0].clientX - dragStartX;
-            const deltaY = e.touches[0].clientY - dragStartY;
-            
-            updateCropPosition(initialCropX + deltaX, initialCropY + deltaY);
-        }
-        
-        function stopDrag() {
-            isDragging = false;
-        }
-        
-        function updateCropPosition(x, y) {
-            const cropContainer = document.getElementById('crop-container');
-            const containerWidth = cropContainer.clientWidth;
+        function calculateDimensions() {
             const cropImage = document.getElementById('crop-image');
+            imageDisplayWidth = cropImage.offsetWidth;
+            imageDisplayHeight = cropImage.offsetHeight;
             
-            const imageRatio = originalImage.width / originalImage.height;
-            let displayWidth, displayHeight;
+            // Kare boyutu = en kısa kenar
+            cropSize = Math.min(imageDisplayWidth, imageDisplayHeight);
             
-            if (imageRatio > 1) {
-                displayWidth = containerWidth;
-                displayHeight = containerWidth / imageRatio;
-            } else {
-                displayHeight = containerWidth;
-                displayWidth = containerWidth * imageRatio;
-            }
-            
-            // Sınırları kontrol et
-            cropX = Math.max(0, Math.min(x, displayWidth - cropSize));
-            cropY = Math.max(0, Math.min(y, displayHeight - cropSize));
-            
-            updateCropBox();
+            log('📐 Boyutlar hesaplandı:', {
+                displayWidth: imageDisplayWidth,
+                displayHeight: imageDisplayHeight,
+                cropSize: cropSize,
+                ratio: originalImage.width / originalImage.height
+            });
         }
         
         function resetCrop() {
-            const cropContainer = document.getElementById('crop-container');
-            const containerWidth = cropContainer.clientWidth;
-            const imageRatio = originalImage.width / originalImage.height;
+            calculateDimensions();
             
-            let displayWidth, displayHeight;
+            // Kareyi ortala
+            cropOffsetX = (imageDisplayWidth - cropSize) / 2;
+            cropOffsetY = (imageDisplayHeight - cropSize) / 2;
             
-            if (imageRatio > 1) {
-                displayWidth = containerWidth;
-                displayHeight = containerWidth / imageRatio;
-            } else {
-                displayHeight = containerWidth;
-                displayWidth = containerWidth * imageRatio;
-            }
-            
-            cropSize = Math.min(displayWidth, displayHeight) * 0.8;
-            cropX = (displayWidth - cropSize) / 2;
-            cropY = (displayHeight - cropSize) / 2;
-            
-            updateCropBox();
+            updateCropFrame();
+            log('🔄 Kare ortalandı:', cropOffsetX, cropOffsetY);
         }
         
-        function confirmCrop() {
-            log('Kırpma onaylandı. Pozisyon:', cropX, cropY, 'Boyut:', cropSize);
-            
-            // Canvas ile kırpılmış kareyi oluştur
+        function updateCropFrame() {
+            const cropFrame = document.getElementById('crop-frame');
+            cropFrame.style.width = cropSize + 'px';
+            cropFrame.style.height = cropSize + 'px';
+            cropFrame.style.left = cropOffsetX + 'px';
+            cropFrame.style.top = cropOffsetY + 'px';
+        }
+        
+        // ============ SÜRÜKLEME ============
+        function setupDragListeners() {
             const cropContainer = document.getElementById('crop-container');
-            const containerWidth = cropContainer.clientWidth;
-            const imageRatio = originalImage.width / originalImage.height;
             
-            let displayWidth, displayHeight;
+            // Eski listener'ları temizle
+            cropContainer.removeEventListener('mousedown', onDragStart);
+            cropContainer.removeEventListener('touchstart', onDragStartTouch);
             
-            if (imageRatio > 1) {
-                displayWidth = containerWidth;
-                displayHeight = containerWidth / imageRatio;
-            } else {
-                displayHeight = containerWidth;
-                displayWidth = containerWidth * imageRatio;
+            // Yeni listener'ları ekle
+            cropContainer.addEventListener('mousedown', onDragStart);
+            cropContainer.addEventListener('touchstart', onDragStartTouch, { passive: false });
+            
+            document.addEventListener('mousemove', onDragMove);
+            document.addEventListener('mouseup', onDragEnd);
+            document.addEventListener('touchmove', onDragMoveTouch, { passive: false });
+            document.addEventListener('touchend', onDragEnd);
+        }
+        
+        function onDragStart(e) {
+            e.preventDefault();
+            isDragging = true;
+            dragStartMouseX = e.clientX;
+            dragStartMouseY = e.clientY;
+            dragStartCropX = cropOffsetX;
+            dragStartCropY = cropOffsetY;
+            
+            document.getElementById('crop-container').style.cursor = 'grabbing';
+            log('🖱️ Sürükleme başladı');
+        }
+        
+        function onDragStartTouch(e) {
+            e.preventDefault();
+            isDragging = true;
+            dragStartMouseX = e.touches[0].clientX;
+            dragStartMouseY = e.touches[0].clientY;
+            dragStartCropX = cropOffsetX;
+            dragStartCropY = cropOffsetY;
+            
+            log('👆 Touch sürükleme başladı');
+        }
+        
+        function onDragMove(e) {
+            if (!isDragging) return;
+            
+            const deltaX = e.clientX - dragStartMouseX;
+            const deltaY = e.clientY - dragStartMouseY;
+            
+            updateCropPosition(dragStartCropX + deltaX, dragStartCropY + deltaY);
+        }
+        
+        function onDragMoveTouch(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+            
+            const deltaX = e.touches[0].clientX - dragStartMouseX;
+            const deltaY = e.touches[0].clientY - dragStartMouseY;
+            
+            updateCropPosition(dragStartCropX + deltaX, dragStartCropY + deltaY);
+        }
+        
+        function onDragEnd() {
+            if (isDragging) {
+                isDragging = false;
+                document.getElementById('crop-container').style.cursor = 'grab';
+                log('✋ Sürükleme bitti - Pozisyon:', Math.round(cropOffsetX), Math.round(cropOffsetY));
             }
+        }
+        
+        function updateCropPosition(newX, newY) {
+            // Sınırları kontrol et - kare fotoğrafın dışına çıkamaz
+            cropOffsetX = Math.max(0, Math.min(newX, imageDisplayWidth - cropSize));
+            cropOffsetY = Math.max(0, Math.min(newY, imageDisplayHeight - cropSize));
             
-            // Ölçek faktörü
-            const scaleX = originalImage.width / displayWidth;
-            const scaleY = originalImage.height / displayHeight;
+            updateCropFrame();
+        }
+        
+        // ============ KIRPMA ONAYI ============
+        function confirmCrop() {
+            log('✅ Kırpma onaylandı');
+            log('   Ekran pozisyonu:', cropOffsetX, cropOffsetY);
+            log('   Ekran kare boyutu:', cropSize);
+            log('   Görüntü boyutu:', imageDisplayWidth, 'x', imageDisplayHeight);
+            log('   Orijinal boyut:', originalImage.width, 'x', originalImage.height);
             
-            // Gerçek piksel koordinatları
-            const sourceX = cropX * scaleX;
-            const sourceY = cropY * scaleY;
-            const sourceSize = cropSize * Math.max(scaleX, scaleY);
+            // Ölçek faktörü - ekrandan orijinal piksele dönüşüm
+            const scaleX = originalImage.width / imageDisplayWidth;
+            const scaleY = originalImage.height / imageDisplayHeight;
             
-            log('Kaynak koordinatlar:', sourceX, sourceY, sourceSize);
+            // Orijinal fotoğraftaki kare koordinatları
+            const sourceX = cropOffsetX * scaleX;
+            const sourceY = cropOffsetY * scaleY;
+            const sourceSize = cropSize * scaleX; // scaleX ve scaleY aynı olmalı (kare)
             
-            // Canvas oluştur
+            log('   Kaynak koordinatlar:', Math.round(sourceX), Math.round(sourceY));
+            log('   Kaynak kare boyutu:', Math.round(sourceSize));
+            
+            // Canvas ile kareyi kırp
             const canvas = document.createElement('canvas');
-            const outputSize = 500; // Çıktı boyutu
+            const outputSize = 600; // Çıktı 600x600 piksel
             canvas.width = outputSize;
             canvas.height = outputSize;
             
             const ctx = canvas.getContext('2d');
+            
+            // Kare bölgeyi canvas'a çiz
             ctx.drawImage(
                 originalImage,
-                sourceX, sourceY, sourceSize, sourceSize,
-                0, 0, outputSize, outputSize
+                sourceX, sourceY, sourceSize, sourceSize,  // Kaynak
+                0, 0, outputSize, outputSize                // Hedef
             );
             
-            const croppedImage = canvas.toDataURL('image/jpeg', 0.8);
-            log('Kırpılmış resim oluşturuldu, uzunluk:', croppedImage.length);
+            const croppedImage = canvas.toDataURL('image/jpeg', 0.85);
+            log('   ✅ Kırpılmış kare oluşturuldu:', croppedImage.length, 'karakter');
             
             // Kırpma ekranını gizle
             cropScreen.classList.add('hidden');
@@ -825,41 +784,31 @@
             startGame(croppedImage);
         }
         
-        // Pencere yeniden boyutlandırmada kırpma karesini güncelle
+        // Pencere yeniden boyutlandırmada güncelle
+        let resizeTimeout;
         window.addEventListener('resize', () => {
-            if (!cropScreen.classList.contains('hidden')) {
-                const cropContainer = document.getElementById('crop-container');
-                const containerWidth = cropContainer.clientWidth;
-                const imageRatio = originalImage.width / originalImage.height;
-                
-                let displayWidth, displayHeight;
-                
-                if (imageRatio > 1) {
-                    displayWidth = containerWidth;
-                    displayHeight = containerWidth / imageRatio;
-                } else {
-                    displayHeight = containerWidth;
-                    displayWidth = containerWidth * imageRatio;
-                }
-                
-                // Kare boyutunu orantılı olarak güncelle
-                const oldMaxDim = Math.min(displayWidth, displayHeight);
-                cropSize = oldMaxDim * 0.8;
-                
-                // Sınırları kontrol et
-                cropX = Math.min(cropX, displayWidth - cropSize);
-                cropY = Math.min(cropY, displayHeight - cropSize);
-                
-                updateCropBox();
+            if (!cropScreen.classList.contains('hidden') && originalImage) {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
+                    calculateDimensions();
+                    
+                    // Kare boyutunu güncelle
+                    cropSize = Math.min(imageDisplayWidth, imageDisplayHeight);
+                    
+                    // Sınırları kontrol et
+                    cropOffsetX = Math.min(cropOffsetX, imageDisplayWidth - cropSize);
+                    cropOffsetY = Math.min(cropOffsetY, imageDisplayHeight - cropSize);
+                    
+                    updateCropFrame();
+                    log('🔄 Pencere yeniden boyutlandı, kare güncellendi');
+                }, 200);
             }
         });
         
         // ============ OYUN BAŞLATMA ============
         function startGame(imageData) {
-            log('startGame çağrıldı, resim uzunluğu:', imageData ? imageData.length : 'NULL');
-            
             if (!imageData) {
-                alert('Fotoğraf işlenemedi! Lütfen tekrar deneyin.');
+                alert('Fotoğraf işlenemedi!');
                 return;
             }
             
@@ -955,7 +904,6 @@
             if (message) {
                 socket.emit('sendMessage', { message });
                 
-                // Kendi mesajını da göster
                 const messagesDiv = document.getElementById('chat-messages');
                 const msg = document.createElement('div');
                 msg.className = 'chat-message';
@@ -989,15 +937,8 @@
         }
         
         // ============ SOCKET EVENTS ============
-        socket.on('connect', () => {
-            log('Socket bağlandı');
-            updateConnectionStatus(true);
-        });
-        
-        socket.on('disconnect', () => {
-            log('Socket bağlantısı koptu');
-            updateConnectionStatus(false);
-        });
+        socket.on('connect', () => updateConnectionStatus(true));
+        socket.on('disconnect', () => updateConnectionStatus(false));
         
         socket.on('roomCreated', (data) => {
             myRole = data.role;
@@ -1143,7 +1084,7 @@
             this.value = this.value.toUpperCase();
         });
         
-        log('Script yüklendi, hazır!');
+        log('🚀 Script yüklendi, hazır!');
     </script>
 </body>
 </html>
