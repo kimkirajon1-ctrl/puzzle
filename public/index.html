@@ -132,6 +132,67 @@
             color: rgba(255,255,255,0.7);
         }
 
+        /* KIRPMA EKRANI */
+        #crop-screen {
+            padding: 20px;
+        }
+
+        .crop-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            overflow: hidden;
+            cursor: move;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        #crop-image {
+            display: block;
+            width: 100%;
+            pointer-events: none;
+        }
+
+        .crop-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+        }
+
+        .crop-box {
+            position: absolute;
+            border: 3px solid #ff4757;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+            transition: none;
+        }
+
+        .crop-handle {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #ff4757;
+            border-radius: 50%;
+            pointer-events: auto;
+            z-index: 10;
+        }
+
+        .crop-handle:hover {
+            background: #ff6b81;
+            transform: scale(1.2);
+        }
+
+        .crop-instructions {
+            margin: 20px 0;
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        /* OYUN ALANI */
         #game-area {
             display: flex;
             gap: 20px;
@@ -171,7 +232,7 @@
         }
 
         .tile {
-            background-size: 300% 300%;
+            background-size: cover;
             background-repeat: no-repeat;
             border-radius: 4px;
             cursor: pointer;
@@ -307,19 +368,12 @@
             display: block;
         }
 
-        #preview-image {
-            max-width: 200px;
-            max-height: 200px;
-            margin-top: 20px;
-            border-radius: 10px;
-            display: none;
-        }
-
         @media (max-width: 768px) {
             .container { padding: 10px; }
             #game-area { flex-direction: column; }
             .puzzle-grid { max-height: 300px; }
             .header h1 { font-size: 1.8em; }
+            .crop-container { max-width: 100%; }
         }
 
         .loading {
@@ -348,6 +402,7 @@
             <div id="room-info" style="margin-top: 10px; font-size: 1.2em;"></div>
         </div>
 
+        <!-- Ana Menü -->
         <div id="menu-screen" class="screen">
             <h2 style="margin-bottom: 30px;">Uzaktaki Sevgilinle Puzzle Oyna!</h2>
             <input type="text" id="player-name" placeholder="Adın ne?" maxlength="20">
@@ -357,6 +412,7 @@
             <button class="btn-green" onclick="joinRoom()">🚪 Odaya Katıl</button>
         </div>
 
+        <!-- Bekleme Odası -->
         <div id="waiting-screen" class="screen hidden">
             <h2>⏳ Partnerin Bekleniyor...</h2>
             <div class="loading" style="margin: 20px;"></div>
@@ -365,6 +421,7 @@
             <button onclick="copyRoomCode()" class="btn-purple">📋 Kodu Kopyala</button>
         </div>
 
+        <!-- Zorluk Seçimi -->
         <div id="difficulty-screen" class="screen hidden">
             <h2 style="margin-bottom: 30px;">🧩 Zorluk Seviyesi</h2>
             <p style="margin-bottom: 20px; opacity: 0.8;">Zorluğu Oyuncu 2 seçer</p>
@@ -379,13 +436,13 @@
             </div>
         </div>
 
+        <!-- Fotoğraf Seçme -->
         <div id="upload-screen" class="screen hidden">
             <h2 style="margin-bottom: 30px;">📸 Birlikte Bir Fotoğraf Seç</h2>
-            <button class="btn-green" onclick="triggerFileInput()">
+            <button class="btn-green" onclick="document.getElementById('file-input').click()">
                 📱 Galeriden Fotoğraf Seç
             </button>
             <input type="file" id="file-input" accept="image/*" style="display:none">
-            <img id="preview-image" alt="Seçilen fotoğraf">
             <div class="upload-progress" id="upload-progress">
                 <div class="loading"></div>
                 <p>Fotoğraf işleniyor...</p>
@@ -396,6 +453,25 @@
             <p style="margin-top: 20px; opacity: 0.8;">Bu fotoğraf puzzle için kullanılacak</p>
         </div>
 
+        <!-- KIRPMA EKRANI (YENİ) -->
+        <div id="crop-screen" class="screen hidden">
+            <h2 style="margin-bottom: 10px;">✂️ Fotoğrafı Kırp</h2>
+            <p class="crop-instructions">👆 Kareyi <strong>sürükleyerek</strong> istediğin bölgeyi seç</p>
+            <div class="crop-container" id="crop-container">
+                <img id="crop-image" alt="Kırpılacak fotoğraf">
+                <div class="crop-overlay">
+                    <div class="crop-box" id="crop-box">
+                        <div class="crop-handle" id="crop-handle" style="bottom: -10px; right: -10px;"></div>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 20px; display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;">
+                <button onclick="resetCrop()" class="btn-purple">🔄 Sıfırla</button>
+                <button onclick="confirmCrop()" class="btn-green">✅ Bu Alanı Kullan</button>
+            </div>
+        </div>
+
+        <!-- Oyun Alanı -->
         <div id="game-screen" class="hidden" style="flex: 1; display: flex; flex-direction: column;">
             <div id="game-area">
                 <div class="player-board">
@@ -444,7 +520,6 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // DEBUG modu - Konsola log yazdırır
         const DEBUG = true;
         function log(...args) {
             if (DEBUG) console.log('[DEBUG]', ...args);
@@ -460,10 +535,22 @@
         let currentImage = '';
         let gameStarted = false;
         
+        // Kırpma değişkenleri
+        let originalImage = null;
+        let cropX = 0;
+        let cropY = 0;
+        let cropSize = 200; // Kare boyutu (piksel)
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let initialCropX = 0;
+        let initialCropY = 0;
+        
         const menuScreen = document.getElementById('menu-screen');
         const waitingScreen = document.getElementById('waiting-screen');
         const difficultyScreen = document.getElementById('difficulty-screen');
         const uploadScreen = document.getElementById('upload-screen');
+        const cropScreen = document.getElementById('crop-screen');
         const gameScreen = document.getElementById('game-screen');
         
         // ============ ODA İŞLEMLERİ ============
@@ -506,121 +593,273 @@
             socket.emit('selectDifficulty', { level });
         }
         
-        // ============ FOTOĞRAF YÜKLEME ============
-        function triggerFileInput() {
-            log('Dosya input tetiklendi');
-            document.getElementById('file-input').click();
-        }
-        
-        // File input change event
+        // ============ FOTOĞRAF SEÇME ============
         document.getElementById('file-input').addEventListener('change', function(e) {
-            log('File input change event tetiklendi');
             const file = e.target.files[0];
+            if (!file) return;
             
-            if (!file) {
-                log('Dosya seçilmedi');
-                return;
-            }
-            
-            log('Seçilen dosya:', file.name, file.size, file.type);
-            
-            // Yükleme göstergesini göster
-            document.getElementById('upload-progress').classList.add('show');
-            document.getElementById('upload-error').classList.remove('show');
+            log('Fotoğraf seçildi:', file.name);
             
             const reader = new FileReader();
-            
             reader.onload = function(ev) {
-                log('FileReader onload tetiklendi');
-                const dataUrl = ev.target.result;
-                
-                // Önizleme göster
-                const previewImg = document.getElementById('preview-image');
-                previewImg.src = dataUrl;
-                previewImg.style.display = 'block';
-                
-                // Resmi işle
-                processImage(dataUrl);
+                const img = new Image();
+                img.onload = function() {
+                    log('Orijinal fotoğraf boyutu:', img.width, 'x', img.height);
+                    originalImage = img;
+                    
+                    // Upload ekranını gizle, kırpma ekranını göster
+                    uploadScreen.classList.add('hidden');
+                    cropScreen.classList.remove('hidden');
+                    
+                    // Kırpma ekranını başlat
+                    initCropScreen();
+                };
+                img.onerror = function() {
+                    alert('Fotoğraf yüklenemedi!');
+                };
+                img.src = ev.target.result;
             };
-            
-            reader.onerror = function(err) {
-                log('FileReader hata:', err);
-                showUploadError();
-            };
-            
             reader.readAsDataURL(file);
         });
         
-        function processImage(dataUrl) {
-            log('processImage başladı');
+        // ============ KIRPMA EKRANI ============
+        function initCropScreen() {
+            const cropImage = document.getElementById('crop-image');
+            const cropContainer = document.getElementById('crop-container');
+            const cropBox = document.getElementById('crop-box');
             
-            const img = new Image();
+            cropImage.src = originalImage.src;
             
-            img.onload = function() {
-                log('Image onload - Boyutlar:', img.width, 'x', img.height);
-                
-                try {
-                    const canvas = document.createElement('canvas');
-                    const maxSize = 600;
-                    let width = img.width;
-                    let height = img.height;
-                    
-                    // Boyutlandırma
-                    if (width > height) {
-                        if (width > maxSize) {
-                            height = Math.round(height * (maxSize / width));
-                            width = maxSize;
-                        }
-                    } else {
-                        if (height > maxSize) {
-                            width = Math.round(width * (maxSize / height));
-                            height = maxSize;
-                        }
-                    }
-                    
-                    log('Canvas boyutu:', width, 'x', height);
-                    
-                    canvas.width = width;
-                    canvas.height = height;
-                    
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-                    
-                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
-                    log('Sıkıştırılmış resim oluşturuldu, uzunluk:', compressedDataUrl.length);
-                    
-                    // Yükleme göstergesini gizle
-                    document.getElementById('upload-progress').classList.remove('show');
-                    
-                    // Oyunu başlat
-                    startGame(compressedDataUrl);
-                    
-                } catch (error) {
-                    log('Canvas işleme hatası:', error);
-                    showUploadError();
-                }
-            };
+            // Container genişliğine göre kare boyutunu ayarla
+            const containerWidth = cropContainer.clientWidth;
+            const imageRatio = originalImage.width / originalImage.height;
             
-            img.onerror = function(err) {
-                log('Image yükleme hatası:', err);
-                showUploadError();
-            };
+            let displayWidth, displayHeight;
             
-            img.src = dataUrl;
+            if (imageRatio > 1) {
+                // Yatay fotoğraf
+                displayWidth = containerWidth;
+                displayHeight = containerWidth / imageRatio;
+            } else {
+                // Dikey fotoğraf
+                displayHeight = containerWidth;
+                displayWidth = containerWidth * imageRatio;
+            }
+            
+            // Kare boyutu: en kısa kenarın %80'i
+            cropSize = Math.min(displayWidth, displayHeight) * 0.8;
+            
+            // Kareyi ortala
+            cropX = (displayWidth - cropSize) / 2;
+            cropY = (displayHeight - cropSize) / 2;
+            
+            updateCropBox();
+            
+            // Sürükleme olayları
+            setupDragEvents();
+            
+            log('Kırpma ekranı hazır. Kare boyutu:', cropSize, 'Pozisyon:', cropX, cropY);
         }
         
-        function showUploadError() {
-            document.getElementById('upload-progress').classList.remove('show');
-            document.getElementById('upload-error').classList.add('show');
+        function updateCropBox() {
+            const cropBox = document.getElementById('crop-box');
+            cropBox.style.left = cropX + 'px';
+            cropBox.style.top = cropY + 'px';
+            cropBox.style.width = cropSize + 'px';
+            cropBox.style.height = cropSize + 'px';
         }
+        
+        function setupDragEvents() {
+            const cropContainer = document.getElementById('crop-container');
+            const cropBox = document.getElementById('crop-box');
+            const cropHandle = document.getElementById('crop-handle');
+            
+            // Mouse olayları
+            cropBox.addEventListener('mousedown', startDrag);
+            cropHandle.addEventListener('mousedown', startDrag);
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', stopDrag);
+            
+            // Touch olayları (mobil)
+            cropBox.addEventListener('touchstart', startDragTouch, { passive: false });
+            cropHandle.addEventListener('touchstart', startDragTouch, { passive: false });
+            document.addEventListener('touchmove', dragTouch, { passive: false });
+            document.addEventListener('touchend', stopDrag);
+        }
+        
+        function startDrag(e) {
+            e.preventDefault();
+            isDragging = true;
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+            initialCropX = cropX;
+            initialCropY = cropY;
+        }
+        
+        function startDragTouch(e) {
+            e.preventDefault();
+            isDragging = true;
+            dragStartX = e.touches[0].clientX;
+            dragStartY = e.touches[0].clientY;
+            initialCropX = cropX;
+            initialCropY = cropY;
+        }
+        
+        function drag(e) {
+            if (!isDragging) return;
+            
+            const deltaX = e.clientX - dragStartX;
+            const deltaY = e.clientY - dragStartY;
+            
+            updateCropPosition(initialCropX + deltaX, initialCropY + deltaY);
+        }
+        
+        function dragTouch(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+            
+            const deltaX = e.touches[0].clientX - dragStartX;
+            const deltaY = e.touches[0].clientY - dragStartY;
+            
+            updateCropPosition(initialCropX + deltaX, initialCropY + deltaY);
+        }
+        
+        function stopDrag() {
+            isDragging = false;
+        }
+        
+        function updateCropPosition(x, y) {
+            const cropContainer = document.getElementById('crop-container');
+            const containerWidth = cropContainer.clientWidth;
+            const cropImage = document.getElementById('crop-image');
+            
+            const imageRatio = originalImage.width / originalImage.height;
+            let displayWidth, displayHeight;
+            
+            if (imageRatio > 1) {
+                displayWidth = containerWidth;
+                displayHeight = containerWidth / imageRatio;
+            } else {
+                displayHeight = containerWidth;
+                displayWidth = containerWidth * imageRatio;
+            }
+            
+            // Sınırları kontrol et
+            cropX = Math.max(0, Math.min(x, displayWidth - cropSize));
+            cropY = Math.max(0, Math.min(y, displayHeight - cropSize));
+            
+            updateCropBox();
+        }
+        
+        function resetCrop() {
+            const cropContainer = document.getElementById('crop-container');
+            const containerWidth = cropContainer.clientWidth;
+            const imageRatio = originalImage.width / originalImage.height;
+            
+            let displayWidth, displayHeight;
+            
+            if (imageRatio > 1) {
+                displayWidth = containerWidth;
+                displayHeight = containerWidth / imageRatio;
+            } else {
+                displayHeight = containerWidth;
+                displayWidth = containerWidth * imageRatio;
+            }
+            
+            cropSize = Math.min(displayWidth, displayHeight) * 0.8;
+            cropX = (displayWidth - cropSize) / 2;
+            cropY = (displayHeight - cropSize) / 2;
+            
+            updateCropBox();
+        }
+        
+        function confirmCrop() {
+            log('Kırpma onaylandı. Pozisyon:', cropX, cropY, 'Boyut:', cropSize);
+            
+            // Canvas ile kırpılmış kareyi oluştur
+            const cropContainer = document.getElementById('crop-container');
+            const containerWidth = cropContainer.clientWidth;
+            const imageRatio = originalImage.width / originalImage.height;
+            
+            let displayWidth, displayHeight;
+            
+            if (imageRatio > 1) {
+                displayWidth = containerWidth;
+                displayHeight = containerWidth / imageRatio;
+            } else {
+                displayHeight = containerWidth;
+                displayWidth = containerWidth * imageRatio;
+            }
+            
+            // Ölçek faktörü
+            const scaleX = originalImage.width / displayWidth;
+            const scaleY = originalImage.height / displayHeight;
+            
+            // Gerçek piksel koordinatları
+            const sourceX = cropX * scaleX;
+            const sourceY = cropY * scaleY;
+            const sourceSize = cropSize * Math.max(scaleX, scaleY);
+            
+            log('Kaynak koordinatlar:', sourceX, sourceY, sourceSize);
+            
+            // Canvas oluştur
+            const canvas = document.createElement('canvas');
+            const outputSize = 500; // Çıktı boyutu
+            canvas.width = outputSize;
+            canvas.height = outputSize;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(
+                originalImage,
+                sourceX, sourceY, sourceSize, sourceSize,
+                0, 0, outputSize, outputSize
+            );
+            
+            const croppedImage = canvas.toDataURL('image/jpeg', 0.8);
+            log('Kırpılmış resim oluşturuldu, uzunluk:', croppedImage.length);
+            
+            // Kırpma ekranını gizle
+            cropScreen.classList.add('hidden');
+            
+            // Oyunu başlat
+            startGame(croppedImage);
+        }
+        
+        // Pencere yeniden boyutlandırmada kırpma karesini güncelle
+        window.addEventListener('resize', () => {
+            if (!cropScreen.classList.contains('hidden')) {
+                const cropContainer = document.getElementById('crop-container');
+                const containerWidth = cropContainer.clientWidth;
+                const imageRatio = originalImage.width / originalImage.height;
+                
+                let displayWidth, displayHeight;
+                
+                if (imageRatio > 1) {
+                    displayWidth = containerWidth;
+                    displayHeight = containerWidth / imageRatio;
+                } else {
+                    displayHeight = containerWidth;
+                    displayWidth = containerWidth * imageRatio;
+                }
+                
+                // Kare boyutunu orantılı olarak güncelle
+                const oldMaxDim = Math.min(displayWidth, displayHeight);
+                cropSize = oldMaxDim * 0.8;
+                
+                // Sınırları kontrol et
+                cropX = Math.min(cropX, displayWidth - cropSize);
+                cropY = Math.min(cropY, displayHeight - cropSize);
+                
+                updateCropBox();
+            }
+        });
         
         // ============ OYUN BAŞLATMA ============
         function startGame(imageData) {
             log('startGame çağrıldı, resim uzunluğu:', imageData ? imageData.length : 'NULL');
             
             if (!imageData) {
-                log('HATA: imageData boş!');
-                alert('Fotoğraf yüklenemedi! Lütfen tekrar deneyin.');
+                alert('Fotoğraf işlenemedi! Lütfen tekrar deneyin.');
                 return;
             }
             
@@ -633,8 +872,6 @@
                 [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
             }
             
-            log('Tiles oluşturuldu:', tiles);
-            
             socket.emit('startGame', {
                 image: imageData,
                 grid: tiles,
@@ -644,19 +881,13 @@
         
         // ============ GRID RENDER ============
         function renderGrid(gridId, grid, isMyGrid) {
-            log('renderGrid çağrıldı:', gridId, 'Grid uzunluğu:', grid.length);
-            
             const element = document.getElementById(gridId);
-            if (!element) {
-                log('HATA: Grid elementi bulunamadı:', gridId);
-                return;
-            }
+            if (!element) return;
             
             element.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
             element.innerHTML = '';
             
             if (!currentImage) {
-                log('HATA: currentImage boş!');
                 element.innerHTML = '<div style="color:white;text-align:center;padding:20px;">Fotoğraf yüklenemedi!</div>';
                 return;
             }
@@ -672,7 +903,6 @@
                 }
                 
                 if (!isEmpty) {
-                    // ÖNEMLİ: Background ayarları
                     const row = Math.floor(value / size);
                     const col = value % size;
                     
@@ -680,8 +910,6 @@
                     tile.style.backgroundSize = `${size * 100}% ${size * 100}%`;
                     tile.style.backgroundPosition = 
                         `${(col / (size - 1)) * 100}% ${(row / (size - 1)) * 100}%`;
-                    
-                    log(`Tile ${index} (value: ${value}): row=${row}, col=${col}, pos=${tile.style.backgroundPosition}`);
                 }
                 
                 if (isMyGrid && !isEmpty) {
@@ -690,8 +918,6 @@
                 
                 element.appendChild(tile);
             });
-            
-            log('Grid render edildi:', gridId);
         }
         
         // ============ TAŞ HAREKETİ ============
@@ -728,6 +954,15 @@
             
             if (message) {
                 socket.emit('sendMessage', { message });
+                
+                // Kendi mesajını da göster
+                const messagesDiv = document.getElementById('chat-messages');
+                const msg = document.createElement('div');
+                msg.className = 'chat-message';
+                msg.textContent = `Sen: ${message}`;
+                messagesDiv.appendChild(msg);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                
                 input.value = '';
             }
         }
@@ -765,7 +1000,6 @@
         });
         
         socket.on('roomCreated', (data) => {
-            log('Oda oluşturuldu:', data);
             myRole = data.role;
             roomId = data.roomId;
             
@@ -777,7 +1011,6 @@
         });
         
         socket.on('roomJoined', (data) => {
-            log('Odaya katıldı:', data);
             myRole = data.role;
             roomId = data.roomId;
             
@@ -790,7 +1023,6 @@
         });
         
         socket.on('playerJoined', () => {
-            log('Oyuncu katıldı');
             waitingScreen.classList.add('hidden');
             difficultyScreen.classList.remove('hidden');
             
@@ -799,26 +1031,19 @@
         });
         
         socket.on('difficultySelected', (data) => {
-            log('Zorluk seçildi:', data);
             size = data.level;
             difficultyScreen.classList.add('hidden');
             uploadScreen.classList.remove('hidden');
         });
         
         socket.on('gameStarted', (data) => {
-            log('Oyun başladı verisi alındı:', data);
-            log('Image var mı?', !!data.image);
-            log('Image uzunluğu:', data.image ? data.image.length : 'YOK');
-            
             size = data.size;
             currentImage = data.image;
             myGrid = [...data.playerGrids[myRole]];
             opponentGrid = [...data.playerGrids[myRole === 'p1' ? 'p2' : 'p1']];
             
-            log('myGrid:', myGrid);
-            log('opponentGrid:', opponentGrid);
-            
             uploadScreen.classList.add('hidden');
+            cropScreen.classList.add('hidden');
             gameScreen.classList.remove('hidden');
             gameScreen.style.display = 'flex';
             
@@ -827,7 +1052,6 @@
             const myGridId = `${myRole}-grid`;
             const opponentGridId = `${myRole === 'p1' ? 'p2' : 'p1'}-grid`;
             
-            // Hint overlay'i ayarla
             const hintOverlay = document.getElementById(`${myRole}-hint`);
             if (hintOverlay && currentImage) {
                 hintOverlay.style.backgroundImage = `url(${currentImage})`;
@@ -837,7 +1061,6 @@
             renderGrid(opponentGridId, opponentGrid, false);
             
             gameStarted = true;
-            log('Oyun başladı!');
         });
         
         socket.on('opponentMove', (data) => {
@@ -897,17 +1120,12 @@
         
         function showHint() {
             const hintOverlay = document.getElementById(`${myRole}-hint`);
-            if (hintOverlay) {
-                log('Hint gösteriliyor');
-                hintOverlay.style.display = 'block';
-            }
+            if (hintOverlay) hintOverlay.style.display = 'block';
         }
         
         function hideHint() {
             const hintOverlay = document.getElementById(`${myRole}-hint`);
-            if (hintOverlay) {
-                hintOverlay.style.display = 'none';
-            }
+            if (hintOverlay) hintOverlay.style.display = 'none';
         }
         
         hintBtn.addEventListener('mousedown', showHint);
