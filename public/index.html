@@ -894,107 +894,200 @@
             }
         }
         
-        // ============ GİZLİ KOD SİSTEMİ ============
-        function setupSecretCode() {
-            const secretZones = document.getElementById('secret-zones');
-            if (!secretZones) return;
+        // ============ GRID RENDER ============
+function renderGrid(gridId, grid, isMyGrid) {
+    const element = document.getElementById(gridId);
+    if (!element) return;
+    
+    // ÖNEMLİ: Önce grid'i temizle
+    element.innerHTML = '';
+    
+    // Grid template'i ayarla
+    element.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+    element.style.position = 'relative';
+    
+    if (!currentImage) return;
+    
+    // Önce puzzle parçalarını ekle
+    grid.forEach((value, index) => {
+        const tile = document.createElement('div');
+        const isEmpty = value === size * size - 1;
+        
+        tile.className = 'tile' + (isEmpty ? ' empty' : '');
+        
+        if (!isMyGrid) {
+            tile.classList.add('opponent-tile');
+        }
+        
+        if (!isEmpty) {
+            const row = Math.floor(value / size);
+            const col = value % size;
             
-            // Sadece Oyuncu 2 için aktif
-            if (myRole !== 'p2') {
-                secretZones.style.display = 'none';
-                return;
-            }
-            
-            secretZones.style.display = 'grid';
-            
-            // Event delegation - tüm zone'ları dinle
-            secretZones.addEventListener('click', function(e) {
-                const zone = e.target.closest('.secret-zone');
-                if (!zone) return;
-                
-                const zoneNumber = parseInt(zone.dataset.zone);
-                handleSecretClick(zoneNumber);
+            tile.style.backgroundImage = `url(${currentImage})`;
+            tile.style.backgroundSize = `${size * 100}% ${size * 100}%`;
+            tile.style.backgroundPosition = 
+                `${(col / (size - 1)) * 100}% ${(row / (size - 1)) * 100}%`;
+        }
+        
+        // SADECE kendi grid'imiz ve boş değilse tıklanabilir
+        if (isMyGrid && !isEmpty) {
+            tile.addEventListener('click', (e) => {
+                e.stopPropagation(); // Olayın üste çıkmasını engelle
+                moveTile(index);
             });
-            
-            log('🔐 Gizli kod sistemi aktif (sadece Oyuncu 2)');
         }
         
-        function handleSecretClick(zoneNumber) {
-            // Önceki timeout'u temizle
-            clearTimeout(secretTimeout);
-            
-            // Diziye ekle
-            secretSequence.push(zoneNumber);
-            
-            log('🔢 Gizli kod:', secretSequence, '| Hedef:', SECRET_CODE);
-            
-            // Göstergeyi güncelle
-            updateSecretIndicator();
-            
-            // Doğru sırada mı kontrol et
-            const currentIndex = secretSequence.length - 1;
-            if (secretSequence[currentIndex] !== SECRET_CODE[currentIndex]) {
-                // Yanlış giriş - sıfırla
-                log('❌ Yanlış sıra! Sıfırlandı.');
-                secretSequence = [];
-                updateSecretIndicator(true);
-                flashSecretIndicator('#ff4757');
-                return;
-            }
-            
-            // Tüm kod doğru girildi mi?
-            if (secretSequence.length === SECRET_CODE.length) {
-                // Kontrol et
-                const isCorrect = secretSequence.every((val, idx) => val === SECRET_CODE[idx]);
-                
-                if (isCorrect) {
-                    log('🎉 GİZLİ KOD DOĞRU! Sürpriz mesaj gösteriliyor...');
-                    showSurprise();
-                    secretSequence = [];
-                    updateSecretIndicator(true);
-                }
-            } else {
-                // Devam ediyor - timeout başlat
-                flashSecretIndicator('#2ecc71');
-            }
-            
-            // Timeout - 2 saniye içinde tamamlanmazsa sıfırla
-            secretTimeout = setTimeout(() => {
-                if (secretSequence.length > 0 && secretSequence.length < SECRET_CODE.length) {
-                    log('⏰ Zaman aşımı! Sıfırlandı.');
-                    secretSequence = [];
-                    updateSecretIndicator(true);
-                    flashSecretIndicator('#ff4757');
-                }
-            }, SECRET_TIMEOUT);
-        }
+        element.appendChild(tile);
+    });
+    
+    // Eğer burası Oyuncu 2'nin grid'i ise, GİZLİ KOD için overlay ekle
+    if (gridId === 'p2-grid') {
+        setupSecretOverlay(element);
+    }
+}
+
+// ============ GİZLİ KOD OVERLAY ============
+function setupSecretOverlay(gridElement) {
+    // Eski overlay varsa kaldır
+    const oldOverlay = gridElement.querySelector('.secret-zones');
+    if (oldOverlay) oldOverlay.remove();
+    
+    // Yeni overlay oluştur
+    const overlay = document.createElement('div');
+    overlay.className = 'secret-zones';
+    overlay.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(3, 1fr);
+        z-index: 20;
+        pointer-events: none;
+    `;
+    
+    // 9 bölge oluştur (1-9)
+    for (let i = 1; i <= 9; i++) {
+        const zone = document.createElement('div');
+        zone.className = 'secret-zone';
+        zone.dataset.zone = i;
+        zone.style.cssText = `
+            pointer-events: auto;
+            cursor: pointer;
+            z-index: 25;
+        `;
         
-        function updateSecretIndicator(reset = false) {
-            const indicator = document.getElementById('secret-indicator');
-            
-            if (reset || secretSequence.length === 0) {
-                indicator.style.display = 'none';
-                indicator.textContent = '';
-                return;
-            }
-            
-            indicator.style.display = 'block';
+        // Her zone'a tıklama olayı ekle
+        zone.addEventListener('click', function(e) {
+            e.stopPropagation(); // PUZZLE TIKLAMASINI ENGELLEME
+            const zoneNumber = parseInt(this.dataset.zone);
+            handleSecretClick(zoneNumber);
+        });
+        
+        overlay.appendChild(zone);
+    }
+    
+    gridElement.appendChild(overlay);
+    
+    // Oyuncu 2 ise aktif et, değilse gizle
+    if (myRole !== 'p2') {
+        overlay.style.display = 'none';
+    }
+    
+    log('🔐 Gizli overlay kuruldu. Rol:', myRole);
+}
+
+// ============ GİZLİ KOD SİSTEMİ ============
+function setupSecretCode() {
+    // Sadece Oyuncu 2 için çalışır
+    if (myRole === 'p2') {
+        log('🔐 Gizli kod sistemi AKTİF - Oyuncu 2');
+        log('   Kod: 1-9-5-1-7');
+        log('   Bölgeler: Sol üst(1) → Sağ alt(9) → Orta(5) → Sol üst(1) → Sol alt(7)');
+    } else {
+        log('🔒 Gizli kod sistemi PASİF - Oyuncu 1');
+    }
+}
+
+function handleSecretClick(zoneNumber) {
+    // SADECE Oyuncu 2 için çalışır
+    if (myRole !== 'p2') return;
+    
+    // Önceki timeout'u temizle
+    clearTimeout(secretTimeout);
+    
+    // Diziye ekle
+    secretSequence.push(zoneNumber);
+    
+    log('🔢 Gizli kod ilerleme:', secretSequence.join(' → '));
+    
+    // Göstergeyi güncelle
+    updateSecretIndicator();
+    
+    // Doğru sırada mı kontrol et
+    const currentIndex = secretSequence.length - 1;
+    if (secretSequence[currentIndex] !== SECRET_CODE[currentIndex]) {
+        // Yanlış giriş - sıfırla
+        log('❌ Yanlış sıra! Sıfırlandı.');
+        flashSecretIndicator('#ff4757', '❌ Yanlış! Tekrar dene');
+        secretSequence = [];
+        return;
+    }
+    
+    // Tüm kod doğru girildi mi?
+    if (secretSequence.length === SECRET_CODE.length) {
+        const isCorrect = secretSequence.every((val, idx) => val === SECRET_CODE[idx]);
+        
+        if (isCorrect) {
+            log('🎉 GİZLİ KOD DOĞRU!');
+            showSurprise();
+            flashSecretIndicator('#ff6b81', '💕 Sürpriz!');
+            secretSequence = [];
+        }
+    } else {
+        // Doğru gidiyor
+        flashSecretIndicator('#2ecc71', `✅ ${secretSequence.join(' → ')}`);
+    }
+    
+    // 2 saniye timeout
+    secretTimeout = setTimeout(() => {
+        if (secretSequence.length > 0 && secretSequence.length < SECRET_CODE.length) {
+            log('⏰ Zaman aşımı! Sıfırlandı.');
+            flashSecretIndicator('#ff4757', '⏰ Zaman aşımı!');
+            secretSequence = [];
+        }
+    }, SECRET_TIMEOUT);
+}
+
+function updateSecretIndicator(reset = false) {
+    const indicator = document.getElementById('secret-indicator');
+    
+    if (reset || secretSequence.length === 0) {
+        indicator.style.display = 'none';
+        return;
+    }
+    
+    indicator.style.display = 'block';
+    indicator.textContent = `🔢 ${secretSequence.join(' → ')}`;
+}
+
+function flashSecretIndicator(color, message) {
+    const indicator = document.getElementById('secret-indicator');
+    indicator.style.display = 'block';
+    indicator.style.background = color;
+    indicator.textContent = message;
+    
+    setTimeout(() => {
+        indicator.style.background = 'rgba(0,0,0,0.5)';
+        if (secretSequence.length === 0) {
+            indicator.style.display = 'none';
+        } else {
             indicator.textContent = `🔢 ${secretSequence.join(' → ')}`;
         }
-        
-        function flashSecretIndicator(color) {
-            const indicator = document.getElementById('secret-indicator');
-            indicator.style.display = 'block';
-            indicator.style.background = color;
-            indicator.textContent = color === '#2ecc71' ? `✅ ${secretSequence.join(' → ')}` : '❌ Sıfırlandı';
-            
-            setTimeout(() => {
-                indicator.style.background = 'rgba(0,0,0,0.5)';
-                if (secretSequence.length === 0) {
-                    indicator.style.display = 'none';
-                }
-            }, 500);
-        }
+    }, 800);
+}
         
         // ============ MESAJ & EMOJİ ============
         function sendMessage() {
