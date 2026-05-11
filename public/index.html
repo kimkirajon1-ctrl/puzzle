@@ -1,194 +1,986 @@
-// ============ GRID RENDER ============
-function renderGrid(gridId, grid, isMyGrid) {
-    const element = document.getElementById(gridId);
-    if (!element) return;
-    
-    // ÖNEMLİ: Önce grid'i temizle
-    element.innerHTML = '';
-    
-    // Grid template'i ayarla
-    element.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
-    element.style.position = 'relative';
-    
-    if (!currentImage) return;
-    
-    // Önce puzzle parçalarını ekle
-    grid.forEach((value, index) => {
-        const tile = document.createElement('div');
-        const isEmpty = value === size * size - 1;
-        
-        tile.className = 'tile' + (isEmpty ? ' empty' : '');
-        
-        if (!isMyGrid) {
-            tile.classList.add('opponent-tile');
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>💑 Aşk Puzzle - Uzaktan Oyna</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        
-        if (!isEmpty) {
-            const row = Math.floor(value / size);
-            const col = value % size;
-            
-            tile.style.backgroundImage = `url(${currentImage})`;
-            tile.style.backgroundSize = `${size * 100}% ${size * 100}%`;
-            tile.style.backgroundPosition = 
-                `${(col / (size - 1)) * 100}% ${(row / (size - 1)) * 100}%`;
-        }
-        
-        // SADECE kendi grid'imiz ve boş değilse tıklanabilir
-        if (isMyGrid && !isEmpty) {
-            tile.addEventListener('click', (e) => {
-                e.stopPropagation(); // Olayın üste çıkmasını engelle
-                moveTile(index);
-            });
-        }
-        
-        element.appendChild(tile);
-    });
-    
-    // Eğer burası Oyuncu 2'nin grid'i ise, GİZLİ KOD için overlay ekle
-    if (gridId === 'p2-grid') {
-        setupSecretOverlay(element);
-    }
-}
 
-// ============ GİZLİ KOD OVERLAY ============
-function setupSecretOverlay(gridElement) {
-    // Eski overlay varsa kaldır
-    const oldOverlay = gridElement.querySelector('.secret-zones');
-    if (oldOverlay) oldOverlay.remove();
-    
-    // Yeni overlay oluştur
-    const overlay = document.createElement('div');
-    overlay.className = 'secret-zones';
-    overlay.style.cssText = `
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        grid-template-rows: repeat(3, 1fr);
-        z-index: 20;
-        pointer-events: none;
-    `;
-    
-    // 9 bölge oluştur (1-9)
-    for (let i = 1; i <= 9; i++) {
-        const zone = document.createElement('div');
-        zone.className = 'secret-zone';
-        zone.dataset.zone = i;
-        zone.style.cssText = `
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            user-select: none;
+            -webkit-user-select: none;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ff4757;
+        }
+
+        .status-dot.connected {
+            background: #2ecc71;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .screen {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            text-align: center;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #ff6b6b, #ff4757);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 16px;
+            margin: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            min-width: 200px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .btn-blue { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+        .btn-green { background: linear-gradient(135deg, #43e97b, #38f9d7); color: #333; }
+        .btn-purple { background: linear-gradient(135deg, #a8edea, #fed6e3); color: #333; }
+
+        input {
+            padding: 15px;
+            border-radius: 25px;
+            border: 2px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.2);
+            color: white;
+            font-size: 16px;
+            margin: 10px;
+            width: 100%;
+            max-width: 300px;
+            text-align: center;
+            outline: none;
+        }
+
+        input::placeholder {
+            color: rgba(255,255,255,0.7);
+        }
+
+        .crop-wrapper {
+            position: relative;
+            display: inline-block;
+            max-width: 100%;
+            margin: 0 auto;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        #crop-container {
+            position: relative;
+            display: inline-block;
+            cursor: grab;
+            max-width: 100%;
+            max-height: 60vh;
+        }
+
+        #crop-container:active {
+            cursor: grabbing;
+        }
+
+        #crop-image {
+            display: block;
+            max-width: 100%;
+            max-height: 60vh;
+            pointer-events: none;
+        }
+
+        .crop-frame {
+            position: absolute;
+            border: 3px solid #ff4757;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+            pointer-events: none;
+            top: 0;
+            left: 0;
+            transition: none;
+        }
+
+        .corner {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background: #ff4757;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .corner-tl { top: -7px; left: -7px; }
+        .corner-tr { top: -7px; right: -7px; }
+        .corner-bl { bottom: -7px; left: -7px; }
+        .corner-br { bottom: -7px; right: -7px; }
+
+        .crop-instructions {
+            margin: 15px 0;
+            opacity: 0.9;
+            font-size: 1.1em;
+            background: rgba(0,0,0,0.2);
+            padding: 10px 20px;
+            border-radius: 20px;
+        }
+
+        #game-area {
+            display: flex;
+            gap: 20px;
+            flex: 1;
+            min-height: 500px;
+        }
+
+        .player-board {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .player-header {
+            text-align: center;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            font-weight: bold;
+        }
+
+        .puzzle-grid {
+            flex: 1;
+            display: grid;
+            gap: 2px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 10px;
+            padding: 5px;
+            aspect-ratio: 1;
+            max-height: 500px;
+            margin: 0 auto;
+            width: 100%;
+            position: relative;
+        }
+
+        .secret-zones {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        .secret-zone {
             pointer-events: auto;
             cursor: pointer;
             z-index: 25;
-        `;
+        }
+
+        .tile {
+            background-size: cover;
+            background-repeat: no-repeat;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: transform 0.1s;
+            position: relative;
+            z-index: 1;
+        }
+
+        .tile:hover {
+            transform: scale(1.02);
+            z-index: 10;
+        }
+
+        .tile:active {
+            transform: scale(0.95);
+        }
+
+        .tile.empty {
+            background: rgba(0,0,0,0.3) !important;
+            cursor: default;
+        }
+
+        .opponent-tile {
+            cursor: default !important;
+        }
+
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        #controls button {
+            width: 50px;
+            height: 50px;
+            padding: 0;
+            border-radius: 50%;
+            font-size: 24px;
+            min-width: unset;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .hint-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-color: rgba(0,0,0,0.8);
+            border-radius: 10px;
+            pointer-events: none;
+            display: none;
+            z-index: 50;
+        }
+
+        #chat-area {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .chat-message {
+            padding: 5px;
+            margin: 5px 0;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+        }
+
+        .floating-emoji {
+            position: fixed;
+            pointer-events: none;
+            z-index: 1000;
+            animation: floatUp 2s ease-out forwards;
+            font-size: 40px;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-200px) scale(2); opacity: 0; }
+        }
+
+        #surprise-message {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,107,129,0.95), rgba(255,71,87,0.95));
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            cursor: pointer;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        #surprise-message h1 {
+            font-size: 3em;
+            animation: bounce 1s infinite;
+            text-shadow: 2px 2px 10px rgba(0,0,0,0.3);
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .secret-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            z-index: 300;
+            pointer-events: none;
+            display: none;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s;
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 10px; }
+            #game-area { flex-direction: column; }
+            .puzzle-grid { max-height: 300px; }
+            .header h1 { font-size: 1.8em; }
+            #crop-container { max-height: 50vh; }
+            #crop-image { max-height: 50vh; }
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💑 Aşk Puzzle</h1>
+            <div class="connection-status">
+                <div class="status-dot" id="status-dot"></div>
+                <span id="status-text">Bağlanıyor...</span>
+            </div>
+            <div id="room-info" style="margin-top: 10px; font-size: 1.2em;"></div>
+        </div>
+
+        <div id="menu-screen" class="screen">
+            <h2 style="margin-bottom: 30px;">Uzaktaki Sevgilinle Puzzle Oyna!</h2>
+            <input type="text" id="player-name" placeholder="Adın ne?" maxlength="20">
+            <button class="btn-blue" onclick="createRoom()">🏠 Yeni Oda Oluştur</button>
+            <div style="margin: 20px 0;">- veya -</div>
+            <input type="text" id="room-id-input" placeholder="Oda Kodunu Gir" maxlength="6" style="text-transform: uppercase;">
+            <button class="btn-green" onclick="joinRoom()">🚪 Odaya Katıl</button>
+        </div>
+
+        <div id="waiting-screen" class="screen hidden">
+            <h2>⏳ Partnerin Bekleniyor...</h2>
+            <div class="loading" style="margin: 20px;"></div>
+            <p style="margin-top: 20px;">Oda Kodu: <strong id="room-code-display" style="font-size: 1.5em;"></strong></p>
+            <p style="margin-top: 10px; opacity: 0.8;">Bu kodu partnerinle paylaş</p>
+            <button onclick="copyRoomCode()" class="btn-purple">📋 Kodu Kopyala</button>
+        </div>
+
+        <div id="difficulty-screen" class="screen hidden">
+            <h2 style="margin-bottom: 30px;">🧩 Zorluk Seviyesi</h2>
+            <p style="margin-bottom: 20px; opacity: 0.8;">Zorluğu Oyuncu 2 seçer</p>
+            <div id="difficulty-buttons" class="hidden">
+                <button onclick="selectDifficulty(3)">3x3 - Kolay</button>
+                <button onclick="selectDifficulty(4)">4x4 - Orta</button>
+                <button onclick="selectDifficulty(5)">5x5 - Zor</button>
+            </div>
+            <div id="waiting-difficulty">
+                <div class="loading" style="margin: 20px;"></div>
+                <p>Partnerin zorluk seviyesini seçiyor...</p>
+            </div>
+        </div>
+
+        <div id="upload-screen" class="screen hidden">
+            <h2 style="margin-bottom: 30px;">📸 Birlikte Bir Fotoğraf Seç</h2>
+            <button class="btn-green" onclick="document.getElementById('file-input').click()">
+                📱 Galeriden Fotoğraf Seç
+            </button>
+            <input type="file" id="file-input" accept="image/*" style="display:none">
+            <p style="margin-top: 20px; opacity: 0.8;">Seçtiğin fotoğrafı kare olarak kırpabilirsin</p>
+        </div>
+
+        <div id="crop-screen" class="screen hidden">
+            <h2 style="margin-bottom: 5px;">✂️ Kareyi Sürükle</h2>
+            <p class="crop-instructions">
+                🖱️ <strong>Kırmızı kareyi sürükle</strong> - İstediğin bölgeyi seç
+            </p>
+            <div class="crop-wrapper">
+                <div id="crop-container">
+                    <img id="crop-image" alt="Kırpılacak fotoğraf">
+                    <div class="crop-frame" id="crop-frame">
+                        <div class="corner corner-tl"></div>
+                        <div class="corner corner-tr"></div>
+                        <div class="corner corner-bl"></div>
+                        <div class="corner corner-br"></div>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 20px; display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;">
+                <button onclick="resetCrop()" class="btn-purple">🔄 Ortala</button>
+                <button onclick="confirmCrop()" class="btn-green">✅ Bu Kareyi Kullan</button>
+            </div>
+        </div>
+
+        <div id="game-screen" class="hidden" style="flex: 1; display: flex; flex-direction: column;">
+            <div id="game-area">
+                <div class="player-board">
+                    <div class="player-header">👤 <span id="p1-name">Oyuncu 1</span></div>
+                    <div style="position: relative; flex: 1;">
+                        <div id="p1-grid" class="puzzle-grid"></div>
+                        <div id="p1-hint" class="hint-overlay"></div>
+                    </div>
+                </div>
+                <div class="player-board">
+                    <div class="player-header">👤 <span id="p2-name">Oyuncu 2</span></div>
+                    <div style="position: relative; flex: 1;">
+                        <div id="p2-grid" class="puzzle-grid"></div>
+                        <div id="p2-hint" class="hint-overlay"></div>
+                    </div>
+                </div>
+            </div>
+            <div id="chat-area">
+                <div id="chat-messages"></div>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <input type="text" id="chat-input" placeholder="Mesaj yaz..." style="flex: 1; margin: 0;">
+                    <button onclick="sendMessage()" style="min-width: unset; padding: 10px 20px;">Gönder</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="surprise-message" onclick="hideSurprise()">
+        <h1>💕 Seni Çok Seviyorum! 💕</h1>
+        <p style="font-size: 1.5em; margin-top: 20px;">Bu oyunu senin için yaptım</p>
+        <p style="margin-top: 10px; font-size: 2em;">❤️</p>
+        <p style="margin-top: 30px; opacity: 0.8; font-size: 0.9em;">(Kapatmak için tıklayın)</p>
+    </div>
+
+    <div class="secret-indicator" id="secret-indicator"></div>
+
+    <div id="controls" style="display: none;">
+        <button id="hint-btn" title="İpucu göster (basılı tut)">👁️</button>
+        <button onclick="sendEmoji('❤️')" title="Kalp gönder">❤️</button>
+        <button onclick="sendEmoji('💋')" title="Öpücük gönder">💋</button>
+        <button onclick="sendEmoji('😊')" title="Gülücük gönder">😊</button>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
         
-        // Her zone'a tıklama olayı ekle
-        zone.addEventListener('click', function(e) {
-            e.stopPropagation(); // PUZZLE TIKLAMASINI ENGELLEME
-            const zoneNumber = parseInt(this.dataset.zone);
-            handleSecretClick(zoneNumber);
+        let myRole = '';
+        let roomId = '';
+        let size = 3;
+        let myGrid = [];
+        let opponentGrid = [];
+        let currentImage = '';
+        let gameStarted = false;
+        
+        // Gizli kod
+        const SECRET_CODE = [1, 9, 5, 1, 7];
+        let secretSequence = [];
+        let secretTimeout = null;
+        const SECRET_TIMEOUT = 2000;
+        
+        // Kırpma
+        let originalImage = null;
+        let imageDisplayWidth = 0;
+        let imageDisplayHeight = 0;
+        let cropSize = 0;
+        let cropOffsetX = 0;
+        let cropOffsetY = 0;
+        let isDragging = false;
+        let dragStartMouseX = 0;
+        let dragStartMouseY = 0;
+        let dragStartCropX = 0;
+        let dragStartCropY = 0;
+        
+        const menuScreen = document.getElementById('menu-screen');
+        const waitingScreen = document.getElementById('waiting-screen');
+        const difficultyScreen = document.getElementById('difficulty-screen');
+        const uploadScreen = document.getElementById('upload-screen');
+        const cropScreen = document.getElementById('crop-screen');
+        const gameScreen = document.getElementById('game-screen');
+
+        // ============ ODA İŞLEMLERİ ============
+        function createRoom() {
+            socket.emit('createRoom', { playerName: document.getElementById('player-name').value || 'Oyuncu 1' });
+        }
+        
+        function joinRoom() {
+            const rid = document.getElementById('room-id-input').value.toUpperCase();
+            if (!rid) return alert('Lütfen oda kodunu girin!');
+            socket.emit('joinRoom', { roomId: rid, playerName: document.getElementById('player-name').value || 'Oyuncu 2' });
+        }
+        
+        function copyRoomCode() {
+            navigator.clipboard.writeText(roomId).then(() => alert('Kopyalandı!')).catch(() => {
+                const ta = document.createElement('textarea');
+                ta.value = roomId;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                alert('Kopyalandı!');
+            });
+        }
+        
+        function selectDifficulty(lvl) {
+            size = lvl;
+            socket.emit('selectDifficulty', { level: lvl });
+        }
+
+        // ============ FOTOĞRAF SEÇME ============
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            const f = e.target.files[0];
+            if (!f) return;
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                const img = new Image();
+                img.onload = function() {
+                    originalImage = img;
+                    uploadScreen.classList.add('hidden');
+                    cropScreen.classList.remove('hidden');
+                    setupCropScreen();
+                };
+                img.src = ev.target.result;
+            };
+            reader.readAsDataURL(f);
+        });
+
+        // ============ KIRPMA ============
+        function setupCropScreen() {
+            const ci = document.getElementById('crop-image');
+            ci.src = originalImage.src;
+            ci.onload = function() {
+                calcDims();
+                resetCrop();
+                setupDrag();
+            };
+        }
+        
+        function calcDims() {
+            const ci = document.getElementById('crop-image');
+            imageDisplayWidth = ci.offsetWidth;
+            imageDisplayHeight = ci.offsetHeight;
+            cropSize = Math.min(imageDisplayWidth, imageDisplayHeight);
+        }
+        
+        function resetCrop() {
+            calcDims();
+            cropOffsetX = (imageDisplayWidth - cropSize) / 2;
+            cropOffsetY = (imageDisplayHeight - cropSize) / 2;
+            updateCropFrame();
+        }
+        
+        function updateCropFrame() {
+            const cf = document.getElementById('crop-frame');
+            cf.style.width = cropSize + 'px';
+            cf.style.height = cropSize + 'px';
+            cf.style.left = cropOffsetX + 'px';
+            cf.style.top = cropOffsetY + 'px';
+        }
+        
+        function setupDrag() {
+            const cc = document.getElementById('crop-container');
+            cc.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+                isDragging = true;
+                dragStartMouseX = e.clientX;
+                dragStartMouseY = e.clientY;
+                dragStartCropX = cropOffsetX;
+                dragStartCropY = cropOffsetY;
+            });
+            cc.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                isDragging = true;
+                dragStartMouseX = e.touches[0].clientX;
+                dragStartMouseY = e.touches[0].clientY;
+                dragStartCropX = cropOffsetX;
+                dragStartCropY = cropOffsetY;
+            }, { passive: false });
+            
+            document.addEventListener('mousemove', function(e) {
+                if (!isDragging) return;
+                cropOffsetX = Math.max(0, Math.min(dragStartCropX + (e.clientX - dragStartMouseX), imageDisplayWidth - cropSize));
+                cropOffsetY = Math.max(0, Math.min(dragStartCropY + (e.clientY - dragStartMouseY), imageDisplayHeight - cropSize));
+                updateCropFrame();
+            });
+            document.addEventListener('touchmove', function(e) {
+                if (!isDragging) return;
+                e.preventDefault();
+                cropOffsetX = Math.max(0, Math.min(dragStartCropX + (e.touches[0].clientX - dragStartMouseX), imageDisplayWidth - cropSize));
+                cropOffsetY = Math.max(0, Math.min(dragStartCropY + (e.touches[0].clientY - dragStartMouseY), imageDisplayHeight - cropSize));
+                updateCropFrame();
+            }, { passive: false });
+            
+            document.addEventListener('mouseup', function() { isDragging = false; });
+            document.addEventListener('touchend', function() { isDragging = false; });
+        }
+        
+        function confirmCrop() {
+            const sx = originalImage.width / imageDisplayWidth;
+            const sy = originalImage.height / imageDisplayHeight;
+            const srcX = cropOffsetX * sx;
+            const srcY = cropOffsetY * sy;
+            const srcSz = cropSize * sx;
+            
+            const c = document.createElement('canvas');
+            c.width = c.height = 600;
+            c.getContext('2d').drawImage(originalImage, srcX, srcY, srcSz, srcSz, 0, 0, 600, 600);
+            
+            cropScreen.classList.add('hidden');
+            startGame(c.toDataURL('image/jpeg', 0.85));
+        }
+        
+        window.addEventListener('resize', function() {
+            if (!cropScreen.classList.contains('hidden') && originalImage) {
+                setTimeout(function() {
+                    calcDims();
+                    cropSize = Math.min(imageDisplayWidth, imageDisplayHeight);
+                    cropOffsetX = Math.min(cropOffsetX, imageDisplayWidth - cropSize);
+                    cropOffsetY = Math.min(cropOffsetY, imageDisplayHeight - cropSize);
+                    updateCropFrame();
+                }, 200);
+            }
+        });
+
+        // ============ OYUN ============
+        function startGame(imgData) {
+            if (!imgData) return;
+            currentImage = imgData;
+            const tiles = Array.from({ length: size * size }, (_, i) => i);
+            for (let i = tiles.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
+            }
+            socket.emit('startGame', { image: imgData, grid: tiles, size: size });
+        }
+        
+        function renderGrid(gridId, grid, isMyGrid) {
+            const el = document.getElementById(gridId);
+            if (!el) return;
+            el.innerHTML = '';
+            el.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+            el.style.position = 'relative';
+            
+            if (!currentImage) return;
+            
+            grid.forEach(function(val, idx) {
+                const tile = document.createElement('div');
+                const empty = val === size * size - 1;
+                tile.className = 'tile' + (empty ? ' empty' : '') + (!isMyGrid ? ' opponent-tile' : '');
+                
+                if (!empty) {
+                    const row = Math.floor(val / size);
+                    const col = val % size;
+                    tile.style.backgroundImage = `url(${currentImage})`;
+                    tile.style.backgroundSize = `${size * 100}% ${size * 100}%`;
+                    tile.style.backgroundPosition = `${(col/(size-1))*100}% ${(row/(size-1))*100}%`;
+                }
+                
+                if (isMyGrid && !empty) {
+                    tile.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        moveTile(idx);
+                    });
+                }
+                
+                el.appendChild(tile);
+            });
+            
+            if (gridId === 'p2-grid') setupSecretOverlay(el);
+        }
+        
+        function moveTile(idx) {
+            if (!gameStarted) return;
+            const ei = myGrid.indexOf(size * size - 1);
+            const r1 = Math.floor(idx / size), c1 = idx % size;
+            const r2 = Math.floor(ei / size), c2 = ei % size;
+            if ((Math.abs(r1-r2)===1 && c1===c2) || (Math.abs(c1-c2)===1 && r1===r2)) {
+                [myGrid[idx], myGrid[ei]] = [myGrid[ei], myGrid[idx]];
+                socket.emit('move', { player: myRole, tiles: myGrid });
+                renderGrid(myRole + '-grid', myGrid, true);
+            }
+        }
+
+        // ============ GİZLİ KOD ============
+        function setupSecretOverlay(el) {
+            const old = el.querySelector('.secret-zones');
+            if (old) old.remove();
+            
+            const overlay = document.createElement('div');
+            overlay.className = 'secret-zones';
+            overlay.style.cssText = 'position:absolute;top:0;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);z-index:20;pointer-events:none;';
+            
+            for (let i = 1; i <= 9; i++) {
+                const zone = document.createElement('div');
+                zone.dataset.zone = i;
+                zone.style.cssText = 'pointer-events:auto;cursor:pointer;z-index:25;';
+                zone.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    if (myRole !== 'p2') return;
+                    handleSecretClick(i);
+                });
+                overlay.appendChild(zone);
+            }
+            
+            if (myRole !== 'p2') overlay.style.display = 'none';
+            el.appendChild(overlay);
+        }
+        
+        function handleSecretClick(num) {
+            if (myRole !== 'p2') return;
+            clearTimeout(secretTimeout);
+            secretSequence.push(num);
+            updateIndicator();
+            
+            const ci = secretSequence.length - 1;
+            if (secretSequence[ci] !== SECRET_CODE[ci]) {
+                flashIndicator('#ff4757', '❌ Yanlış! Tekrar dene');
+                secretSequence = [];
+                return;
+            }
+            
+            if (secretSequence.length === SECRET_CODE.length && secretSequence.every(function(v, i) { return v === SECRET_CODE[i]; })) {
+                showSurprise();
+                flashIndicator('#ff6b81', '💕 Sürpriz!');
+                secretSequence = [];
+            } else {
+                flashIndicator('#2ecc71', '✅ ' + secretSequence.join(' → '));
+            }
+            
+            secretTimeout = setTimeout(function() {
+                if (secretSequence.length > 0 && secretSequence.length < SECRET_CODE.length) {
+                    flashIndicator('#ff4757', '⏰ Zaman aşımı!');
+                    secretSequence = [];
+                }
+            }, SECRET_TIMEOUT);
+        }
+        
+        function updateIndicator() {
+            const ind = document.getElementById('secret-indicator');
+            if (secretSequence.length === 0) { ind.style.display = 'none'; return; }
+            ind.style.display = 'block';
+            ind.textContent = '🔢 ' + secretSequence.join(' → ');
+        }
+        
+        function flashIndicator(color, msg) {
+            const ind = document.getElementById('secret-indicator');
+            ind.style.display = 'block';
+            ind.style.background = color;
+            ind.textContent = msg;
+            setTimeout(function() {
+                ind.style.background = 'rgba(0,0,0,0.7)';
+                if (secretSequence.length === 0) ind.style.display = 'none';
+                else ind.textContent = '🔢 ' + secretSequence.join(' → ');
+            }, 800);
+        }
+
+        // ============ MESAJ & EMOJİ ============
+        function sendMessage() {
+            const inp = document.getElementById('chat-input');
+            const msg = inp.value.trim();
+            if (!msg) return;
+            socket.emit('sendMessage', { message: msg });
+            const div = document.getElementById('chat-messages');
+            const m = document.createElement('div');
+            m.className = 'chat-message';
+            m.textContent = 'Sen: ' + msg;
+            div.appendChild(m);
+            div.scrollTop = div.scrollHeight;
+            inp.value = '';
+        }
+        
+        function sendEmoji(emoji) {
+            socket.emit('sendEmoji', { emoji: emoji });
+            const el = document.createElement('div');
+            el.className = 'floating-emoji';
+            el.textContent = emoji;
+            el.style.left = Math.random() * 80 + '%';
+            el.style.top = '80%';
+            document.body.appendChild(el);
+            setTimeout(function() { el.remove(); }, 2000);
+        }
+        
+        function showSurprise() {
+            document.getElementById('surprise-message').style.display = 'flex';
+            for (let i = 0; i < 20; i++) setTimeout(function() { sendEmoji('❤️'); }, i * 100);
+        }
+        
+        function hideSurprise() {
+            document.getElementById('surprise-message').style.display = 'none';
+        }
+
+        // ============ SOCKET ============
+        socket.on('connect', function() { updateConn(true); });
+        socket.on('disconnect', function() { updateConn(false); });
+        
+        socket.on('roomCreated', function(d) {
+            myRole = d.role; roomId = d.roomId;
+            menuScreen.classList.add('hidden');
+            waitingScreen.classList.remove('hidden');
+            document.getElementById('room-code-display').textContent = roomId;
+            document.getElementById('room-info').textContent = 'Oda: ' + roomId;
         });
         
-        overlay.appendChild(zone);
-    }
-    
-    gridElement.appendChild(overlay);
-    
-    // Oyuncu 2 ise aktif et, değilse gizle
-    if (myRole !== 'p2') {
-        overlay.style.display = 'none';
-    }
-    
-    log('🔐 Gizli overlay kuruldu. Rol:', myRole);
-}
-
-// ============ GİZLİ KOD SİSTEMİ ============
-function setupSecretCode() {
-    // Sadece Oyuncu 2 için çalışır
-    if (myRole === 'p2') {
-        log('🔐 Gizli kod sistemi AKTİF - Oyuncu 2');
-        log('   Kod: 1-9-5-1-7');
-        log('   Bölgeler: Sol üst(1) → Sağ alt(9) → Orta(5) → Sol üst(1) → Sol alt(7)');
-    } else {
-        log('🔒 Gizli kod sistemi PASİF - Oyuncu 1');
-    }
-}
-
-function handleSecretClick(zoneNumber) {
-    // SADECE Oyuncu 2 için çalışır
-    if (myRole !== 'p2') return;
-    
-    // Önceki timeout'u temizle
-    clearTimeout(secretTimeout);
-    
-    // Diziye ekle
-    secretSequence.push(zoneNumber);
-    
-    log('🔢 Gizli kod ilerleme:', secretSequence.join(' → '));
-    
-    // Göstergeyi güncelle
-    updateSecretIndicator();
-    
-    // Doğru sırada mı kontrol et
-    const currentIndex = secretSequence.length - 1;
-    if (secretSequence[currentIndex] !== SECRET_CODE[currentIndex]) {
-        // Yanlış giriş - sıfırla
-        log('❌ Yanlış sıra! Sıfırlandı.');
-        flashSecretIndicator('#ff4757', '❌ Yanlış! Tekrar dene');
-        secretSequence = [];
-        return;
-    }
-    
-    // Tüm kod doğru girildi mi?
-    if (secretSequence.length === SECRET_CODE.length) {
-        const isCorrect = secretSequence.every((val, idx) => val === SECRET_CODE[idx]);
+        socket.on('roomJoined', function(d) {
+            myRole = d.role; roomId = d.roomId;
+            menuScreen.classList.add('hidden');
+            difficultyScreen.classList.remove('hidden');
+            document.getElementById('room-info').textContent = 'Oda: ' + roomId;
+            document.getElementById('difficulty-buttons').classList.remove('hidden');
+            document.getElementById('waiting-difficulty').classList.add('hidden');
+        });
         
-        if (isCorrect) {
-            log('🎉 GİZLİ KOD DOĞRU!');
-            showSurprise();
-            flashSecretIndicator('#ff6b81', '💕 Sürpriz!');
-            secretSequence = [];
+        socket.on('playerJoined', function() {
+            waitingScreen.classList.add('hidden');
+            difficultyScreen.classList.remove('hidden');
+            document.getElementById('difficulty-buttons').classList.add('hidden');
+            document.getElementById('waiting-difficulty').classList.remove('hidden');
+        });
+        
+        socket.on('difficultySelected', function(d) {
+            size = d.level;
+            difficultyScreen.classList.add('hidden');
+            uploadScreen.classList.remove('hidden');
+        });
+        
+        socket.on('gameStarted', function(d) {
+            size = d.size;
+            currentImage = d.image;
+            myGrid = d.playerGrids[myRole].slice();
+            opponentGrid = d.playerGrids[myRole === 'p1' ? 'p2' : 'p1'].slice();
+            
+            uploadScreen.classList.add('hidden');
+            cropScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            gameScreen.style.display = 'flex';
+            document.getElementById('controls').style.display = 'flex';
+            
+            document.getElementById(myRole + '-hint').style.backgroundImage = 'url(' + currentImage + ')';
+            
+            renderGrid(myRole + '-grid', myGrid, true);
+            renderGrid((myRole === 'p1' ? 'p2' : 'p1') + '-grid', opponentGrid, false);
+            
+            gameStarted = true;
+        });
+        
+        socket.on('opponentMove', function(d) {
+            opponentGrid = d.tiles;
+            renderGrid((myRole === 'p1' ? 'p2' : 'p1') + '-grid', opponentGrid, false);
+        });
+        
+        socket.on('receiveEmoji', function(d) {
+            const el = document.createElement('div');
+            el.className = 'floating-emoji';
+            el.textContent = d.emoji;
+            el.style.left = Math.random() * 80 + '%';
+            el.style.top = '80%';
+            document.body.appendChild(el);
+            setTimeout(function() { el.remove(); }, 2000);
+        });
+        
+        socket.on('newMessage', function(d) {
+            const div = document.getElementById('chat-messages');
+            const m = document.createElement('div');
+            m.className = 'chat-message';
+            m.textContent = (d.sender === 'p1' ? 'Oyuncu 1' : 'Oyuncu 2') + ': ' + d.message;
+            div.appendChild(m);
+            div.scrollTop = div.scrollHeight;
+        });
+        
+        socket.on('puzzleCompleted', function(d) { alert(d.message); });
+        socket.on('playerDisconnected', function() { alert('Partner bağlantısı koptu!'); updateConn(false); });
+        socket.on('error', function(d) { alert(d.message); });
+        
+        function updateConn(c) {
+            document.getElementById('status-dot').classList.toggle('connected', c);
+            document.getElementById('status-text').textContent = c ? 'Bağlı' : 'Bağlantı Koptu';
         }
-    } else {
-        // Doğru gidiyor
-        flashSecretIndicator('#2ecc71', `✅ ${secretSequence.join(' → ')}`);
-    }
-    
-    // 2 saniye timeout
-    secretTimeout = setTimeout(() => {
-        if (secretSequence.length > 0 && secretSequence.length < SECRET_CODE.length) {
-            log('⏰ Zaman aşımı! Sıfırlandı.');
-            flashSecretIndicator('#ff4757', '⏰ Zaman aşımı!');
-            secretSequence = [];
-        }
-    }, SECRET_TIMEOUT);
-}
 
-function updateSecretIndicator(reset = false) {
-    const indicator = document.getElementById('secret-indicator');
-    
-    if (reset || secretSequence.length === 0) {
-        indicator.style.display = 'none';
-        return;
-    }
-    
-    indicator.style.display = 'block';
-    indicator.textContent = `🔢 ${secretSequence.join(' → ')}`;
-}
+        // ============ HINT ============
+        const hb = document.getElementById('hint-btn');
+        hb.addEventListener('mousedown', function() { document.getElementById(myRole + '-hint').style.display = 'block'; });
+        hb.addEventListener('mouseup', function() { document.getElementById(myRole + '-hint').style.display = 'none'; });
+        hb.addEventListener('mouseleave', function() { document.getElementById(myRole + '-hint').style.display = 'none'; });
+        hb.addEventListener('touchstart', function(e) { e.preventDefault(); document.getElementById(myRole + '-hint').style.display = 'block'; });
+        hb.addEventListener('touchend', function() { document.getElementById(myRole + '-hint').style.display = 'none'; });
 
-function flashSecretIndicator(color, message) {
-    const indicator = document.getElementById('secret-indicator');
-    indicator.style.display = 'block';
-    indicator.style.background = color;
-    indicator.textContent = message;
-    
-    setTimeout(() => {
-        indicator.style.background = 'rgba(0,0,0,0.5)';
-        if (secretSequence.length === 0) {
-            indicator.style.display = 'none';
-        } else {
-            indicator.textContent = `🔢 ${secretSequence.join(' → ')}`;
-        }
-    }, 800);
-}
+        // ============ DİĞER ============
+        document.getElementById('chat-input').addEventListener('keypress', function(e) { if (e.key === 'Enter') sendMessage(); });
+        document.getElementById('room-id-input').addEventListener('input', function(e) { this.value = this.value.toUpperCase(); });
+    </script>
+</body>
+</html>
